@@ -31,9 +31,9 @@ jobs:
         run: |
           docker run --rm osbot-v4:ci-test \
             sh -c "pip install ruff mypy -q && \
-                   ruff check src/osbot --output-format=text && \
-                   ruff format --check src/osbot && \
-                   mypy src/osbot || true"
+                   python3 -m ruff check src/osbot --output-format=text && \
+                   python3 -m ruff format --check src/osbot && \
+                   python3 -m mypy src/osbot || true"
 
       - name: Run tests inside container
         run: |
@@ -41,7 +41,7 @@ jobs:
             -e PYTHONPATH=/opt/osbot/src \
             osbot-v4:ci-test \
             sh -c "pip install pytest pytest-asyncio pytest-cov -q && \
-                   pytest tests/ --cov=osbot --cov-report=term-missing --cov-fail-under=30 -q"
+                   python3 -m pytest tests/ --cov=osbot --cov-report=term-missing --cov-fail-under=30 -q"
 
       - name: Container health check
         run: |
