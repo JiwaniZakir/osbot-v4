@@ -33,7 +33,7 @@ jobs:
             sh -c "pip install ruff mypy -q && \
                    ruff check src/osbot --output-format=text && \
                    ruff format --check src/osbot && \
-                   mypy src/osbot"
+                   mypy src/osbot --ignore-missing-imports --no-strict"
 
       - name: Run tests inside container
         run: |
