@@ -7,19 +7,18 @@ The claim comment is posted via gh CLI.  Polling is free (GraphQL).
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.types import (
-    AgentResult,
-    ClaudeGatewayProtocol,
-    GitHubCLIProtocol,
-    MemoryDBProtocol,
-    Phase,
-    Priority,
-    ScoredIssue,
-)
+
+if TYPE_CHECKING:
+    from osbot.types import (
+        GitHubCLIProtocol,
+        MemoryDBProtocol,
+        ScoredIssue,
+    )
 
 logger = get_logger(__name__)
 
@@ -57,7 +56,7 @@ async def check_assignment(
         # Check timeout
         try:
             claimed_at = datetime.fromisoformat(claim_ts)
-            elapsed_hours = (datetime.now(timezone.utc) - claimed_at).total_seconds() / 3600
+            elapsed_hours = (datetime.now(UTC) - claimed_at).total_seconds() / 3600
             if elapsed_hours > settings.assignment_timeout_hours:
                 logger.info(
                     "assignment_timeout",
@@ -84,8 +83,8 @@ async def request_assignment(
     Returns True if the comment was posted successfully.
     """
     comment_body = (
-        f"I'd like to work on this issue. "
-        f"I've looked at the codebase and believe I can provide a fix."
+        "I'd like to work on this issue. "
+        "I've looked at the codebase and believe I can provide a fix."
     )
 
     result = await github.run_gh([
@@ -104,7 +103,7 @@ async def request_assignment(
         return False
 
     # Record claim timestamp
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     await db.set_repo_fact(
         issue.repo,
         f"claim_ts_{issue.number}",

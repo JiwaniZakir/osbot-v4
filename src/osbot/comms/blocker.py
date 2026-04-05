@@ -20,8 +20,9 @@ within 24 hours).
 
 from __future__ import annotations
 
+import contextlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from osbot.config import settings
@@ -44,10 +45,8 @@ def _load_dedup() -> dict[str, str]:
 
 
 def _save_dedup(data: dict[str, str]) -> None:
-    try:
+    with contextlib.suppress(OSError):
         _DEDUP_FILE.write_text(json.dumps(data, indent=2))
-    except OSError:
-        pass
 
 
 def _should_notify(key: str) -> bool:
@@ -58,7 +57,7 @@ def _should_notify(key: str) -> bool:
         return True
     try:
         last_dt = datetime.fromisoformat(last)
-        if datetime.now(timezone.utc) - last_dt > timedelta(hours=_DEDUP_WINDOW_HOURS):
+        if datetime.now(UTC) - last_dt > timedelta(hours=_DEDUP_WINDOW_HOURS):
             return True
     except (ValueError, TypeError):
         return True
@@ -67,9 +66,9 @@ def _should_notify(key: str) -> bool:
 
 def _mark_notified(key: str) -> None:
     dedup = _load_dedup()
-    dedup[key] = datetime.now(timezone.utc).isoformat()
+    dedup[key] = datetime.now(UTC).isoformat()
     # Prune old entries
-    cutoff = (datetime.now(timezone.utc) - timedelta(hours=_DEDUP_WINDOW_HOURS * 2)).isoformat()
+    cutoff = (datetime.now(UTC) - timedelta(hours=_DEDUP_WINDOW_HOURS * 2)).isoformat()
     dedup = {k: v for k, v in dedup.items() if v > cutoff}
     _save_dedup(dedup)
 

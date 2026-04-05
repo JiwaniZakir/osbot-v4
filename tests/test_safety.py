@@ -6,14 +6,16 @@ and blacklisted orgs.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from osbot.safety.anti_spam import check_spam
 from osbot.safety.circuit_breaker import ban_repo, can_attempt_repo
 from osbot.safety.domain import is_in_domain
-from osbot.state.db import MemoryDB
 from osbot.types import RepoMeta
 
+if TYPE_CHECKING:
+    from osbot.state.db import MemoryDB
 
 # ---------------------------------------------------------------------------
 # Domain filter
@@ -96,7 +98,7 @@ async def test_ban_repo_and_check(db: MemoryDB) -> None:
 async def test_expired_ban_allows(db: MemoryDB) -> None:
     """A ban that has expired should allow the repo."""
     # Insert a ban that expired yesterday
-    yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+    yesterday = datetime.now(UTC) - timedelta(days=1)
     await db.execute(
         "INSERT INTO repo_bans (repo, reason, banned_at, expires_at, created_by) VALUES (?, ?, ?, ?, ?)",
         (

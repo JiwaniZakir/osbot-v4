@@ -20,7 +20,6 @@ from osbot.intel.policy import fetch_pr_template
 from osbot.log import get_logger
 from osbot.text import truncate
 from osbot.types import (
-    AgentResult,
     ClaudeGatewayProtocol,
     GitHubCLIProtocol,
     MemoryDBProtocol,

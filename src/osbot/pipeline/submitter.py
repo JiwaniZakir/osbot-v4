@@ -7,11 +7,13 @@ Handles fork-already-exists gracefully.  All git/gh calls via
 from __future__ import annotations
 
 import re
-import secrets
+from typing import TYPE_CHECKING
 
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol, ScoredIssue
+
+if TYPE_CHECKING:
+    from osbot.types import GitHubCLIProtocol, ScoredIssue
 
 logger = get_logger(__name__)
 

@@ -26,20 +26,20 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
+
+from osbot.intel.duplicates import check_claimed_in_comments
+from osbot.log import get_logger
 
 # Issues rejected more than this many days ago are allowed back into the queue.
 # Must match the equivalent window in pipeline/preflight.py.
 _OUTCOME_RETRY_DAYS = 7
 _TERMINAL_OUTCOMES = frozenset({"submitted", "merged", "iterated_merged"})
 
-from osbot.config import settings
-from osbot.intel.duplicates import check_claimed_in_comments
-from osbot.intel.graphql import GraphQLClient
-from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol, MemoryDBProtocol, RepoMeta
+if TYPE_CHECKING:
+    from osbot.intel.graphql import GraphQLClient
+    from osbot.types import GitHubCLIProtocol, MemoryDBProtocol, RepoMeta
 
 logger = get_logger(__name__)
 
@@ -114,7 +114,7 @@ async def find_issues(
                 created_str = existing.get("created_at", "") or ""
                 try:
                     created_at = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
-                    age_days = (datetime.now(timezone.utc) - created_at).days
+                    age_days = (datetime.now(UTC) - created_at).days
                 except (ValueError, TypeError):
                     age_days = 0
                 if age_days < _OUTCOME_RETRY_DAYS:
@@ -207,8 +207,8 @@ def _prescore_candidates(
     skipped = 0
     for repo, issue in candidates:
         labels = {
-            (l.get("name", "") if isinstance(l, dict) else str(l)).lower()
-            for l in issue.get("labels", [])
+            (label.get("name", "") if isinstance(label, dict) else str(label)).lower()
+            for label in issue.get("labels", [])
         }
         if labels & _SKIP_LABELS:
             skipped += 1
@@ -229,7 +229,7 @@ def _prescore_candidates(
 
     # Take top N per repo
     result: list[tuple[RepoMeta, dict[str, Any]]] = []
-    for key, items in by_repo.items():
+    for _key, items in by_repo.items():
         items.sort(key=lambda x: x[2], reverse=True)
         for repo, issue, _score in items[:_MAX_ISSUES_PER_REPO]:
             result.append((repo, issue))
@@ -267,8 +267,8 @@ def _quick_score(issue: dict[str, Any]) -> float:
 
     # Good labels
     labels = {
-        (l.get("name", "") if isinstance(l, dict) else str(l)).lower()
-        for l in issue.get("labels", [])
+        (label.get("name", "") if isinstance(label, dict) else str(label)).lower()
+        for label in issue.get("labels", [])
     }
     if "bug" in labels:
         score += 1.0
@@ -308,7 +308,7 @@ def _quick_score(issue: dict[str, Any]) -> float:
 
 def _is_fresh(issue_data: dict[str, Any]) -> bool:
     """Return True if the issue meets freshness thresholds."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     created_str = issue_data.get("createdAt", "")
     if created_str:

@@ -9,12 +9,14 @@ Zero Claude calls.  Layer 4.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 from osbot.intel.graphql import GraphQLClient
 from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol, MemoryDBProtocol, RepoMeta
+
+if TYPE_CHECKING:
+    from osbot.types import GitHubCLIProtocol, MemoryDBProtocol, RepoMeta
 
 logger = get_logger(__name__)
 

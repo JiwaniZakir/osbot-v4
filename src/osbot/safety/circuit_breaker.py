@@ -13,10 +13,13 @@ Language/domain filter fails          -> Permanent removal
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from osbot.log import get_logger
-from osbot.types import MemoryDBProtocol
+
+if TYPE_CHECKING:
+    from osbot.types import MemoryDBProtocol
 
 logger = get_logger(__name__)
 
@@ -33,11 +36,11 @@ REPEAT_ERROR_BAN_DAYS = 7
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _expires_iso(days: int) -> str:
-    return (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+    return (datetime.now(UTC) + timedelta(days=days)).isoformat()
 
 
 async def can_attempt_repo(

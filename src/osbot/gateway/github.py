@@ -84,7 +84,7 @@ async def _run_cli(
 
         return CLIResult(returncode=returncode, stdout=stdout, stderr=stderr)
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.warning(f"{label}_timeout", cmd=cmd, timeout=timeout)
         try:
             proc.kill()  # type: ignore[possibly-undefined]

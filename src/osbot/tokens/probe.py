@@ -11,7 +11,7 @@ the OAuth token is about to expire or has already expired.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -139,7 +139,7 @@ async def probe(oauth_token: str | None = None) -> UsageSnapshot | None:
     # Each value is 0.0-1.0 utilization fraction.
     try:
         return UsageSnapshot(
-            ts=datetime.now(timezone.utc).isoformat(),
+            ts=datetime.now(UTC).isoformat(),
             five_hour=float(body.get("five_hour", body.get("fiveHour", 0.0))),
             seven_day=float(body.get("seven_day", body.get("sevenDay", 0.0))),
             opus_weekly=float(body.get("opus_weekly", body.get("opusWeekly", 0.0))),
@@ -219,7 +219,7 @@ def _extract_expiry_from_dict(data: dict[str, object]) -> datetime | None:
             try:
                 # Detect milliseconds (13+ digits) vs seconds (10 digits)
                 ts = val / 1000 if val > 1_000_000_000_000 else val
-                return datetime.fromtimestamp(ts, tz=timezone.utc)
+                return datetime.fromtimestamp(ts, tz=UTC)
             except (OSError, ValueError):
                 continue
 
@@ -228,7 +228,7 @@ def _extract_expiry_from_dict(data: dict[str, object]) -> datetime | None:
             try:
                 dt = datetime.fromisoformat(val.replace("Z", "+00:00"))
                 if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
+                    dt = dt.replace(tzinfo=UTC)
                 return dt
             except (ValueError, TypeError):
                 continue
@@ -303,7 +303,7 @@ async def check_token_expiry(alert_email: str | None = None) -> None:
             pass
         return
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     remaining = expiry - now
     hours_remaining = remaining.total_seconds() / 3600
 

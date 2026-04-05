@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import base64
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol
+
+if TYPE_CHECKING:
+    from osbot.types import GitHubCLIProtocol
 
 logger = get_logger(__name__)
 
@@ -177,18 +179,12 @@ def detect_ai_policy(contributing_text: str) -> bool:
     Args:
         contributing_text: Raw text content of CONTRIBUTING.md.
     """
-    for pattern in _NO_AI_PATTERNS:
-        if pattern.search(contributing_text):
-            return True
-    return False
+    return any(pattern.search(contributing_text) for pattern in _NO_AI_PATTERNS)
 
 
 def _detect_assignment(text: str) -> bool:
     """Return True if the text requires assignment before working."""
-    for pattern in _ASSIGNMENT_PATTERNS:
-        if pattern.search(text):
-            return True
-    return False
+    return any(pattern.search(text) for pattern in _ASSIGNMENT_PATTERNS)
 
 
 def _detect_commit_format(text: str) -> str | None:
@@ -209,10 +205,7 @@ def _detect_branch_strategy(text: str) -> str | None:
 
 def _detect_test_requirements(text: str) -> bool:
     """Return True if contributing guidelines mention test requirements."""
-    for pattern in _TEST_PATTERNS:
-        if pattern.search(text):
-            return True
-    return False
+    return any(pattern.search(text) for pattern in _TEST_PATTERNS)
 
 
 def _decode_base64(encoded: str) -> str | None:

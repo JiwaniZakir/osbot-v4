@@ -5,13 +5,16 @@ Covers repo facts, outcomes, bans, and BotState queue operations.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 from osbot.state.bot_state import BotState
-from osbot.state.db import MemoryDB
 from osbot.types import Outcome, ScoredIssue
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from osbot.state.db import MemoryDB
 
 # ---------------------------------------------------------------------------
 # MemoryDB: repo facts
@@ -91,7 +94,7 @@ async def test_ban_and_check(db: MemoryDB) -> None:
 async def test_expired_ban(db: MemoryDB) -> None:
     """An expired ban should not be reported as active."""
     # Insert an already-expired ban
-    past = datetime.now(timezone.utc) - timedelta(days=1)
+    past = datetime.now(UTC) - timedelta(days=1)
     past_start = past - timedelta(days=7)
     await db.execute(
         """

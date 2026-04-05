@@ -10,13 +10,16 @@ Checks:
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from osbot.config import settings
-from osbot.gateway.github import GitHubCLI
 from osbot.log import get_logger
-from osbot.types import MemoryDBProtocol
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from osbot.gateway.github import GitHubCLI
+    from osbot.types import MemoryDBProtocol
 
 logger = get_logger(__name__)
 
@@ -48,7 +51,7 @@ async def _check_claude() -> bool:
         logger.info("health_claude_ok", version=output.strip()[:80])
         return True
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         logger.error("health_claude_timeout", message="claude --version timed out (possible TOS dialog)")
         return False
     except FileNotFoundError:

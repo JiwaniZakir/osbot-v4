@@ -9,13 +9,18 @@ CI fix limited to one attempt.
 
 from __future__ import annotations
 
+import contextlib
 import re
 
 from osbot.config import settings
 from osbot.log import get_logger
 from osbot.types import (
-    ClaudeGatewayProtocol, FeedbackResult, GitHubCLIProtocol,
-    OpenPR, Phase, Priority,
+    ClaudeGatewayProtocol,
+    FeedbackResult,
+    GitHubCLIProtocol,
+    OpenPR,
+    Phase,
+    Priority,
 )
 
 logger = get_logger(__name__)
@@ -167,8 +172,6 @@ async def _diff_size(workspace: str, github: GitHubCLIProtocol) -> int:
     total = 0
     for part in summary.split(","):
         if "insertion" in part or "deletion" in part:
-            try:
+            with contextlib.suppress(ValueError, IndexError):
                 total += int(part.strip().split()[0])
-            except (ValueError, IndexError):
-                pass
     return total

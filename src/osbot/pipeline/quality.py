@@ -6,7 +6,6 @@ linter, test suite, commit message format.  Each check is free.
 
 from __future__ import annotations
 
-import json
 import re
 
 from osbot.config import settings
@@ -96,9 +95,7 @@ def _count_diff_lines(diff_text: str) -> int:
     """Count added + removed lines in a unified diff."""
     count = 0
     for line in diff_text.splitlines():
-        if line.startswith("+") and not line.startswith("+++"):
-            count += 1
-        elif line.startswith("-") and not line.startswith("---"):
+        if line.startswith("+") and not line.startswith("+++") or line.startswith("-") and not line.startswith("---"):
             count += 1
     return count
 

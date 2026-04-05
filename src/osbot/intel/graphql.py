@@ -9,10 +9,12 @@ Zero Claude calls.  Layer 2.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol
+
+if TYPE_CHECKING:
+    from osbot.types import GitHubCLIProtocol
 
 logger = get_logger(__name__)
 

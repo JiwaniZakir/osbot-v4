@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 
 from osbot.config import settings
 from osbot.intel.duplicates import check_claimed_in_comments
@@ -77,9 +77,7 @@ def _is_non_actionable(issue: ScoredIssue) -> bool:
         return True
     # Check labels (lowercased)
     labels_lower = {lb.lower() for lb in (issue.labels or [])}
-    if labels_lower & _QUESTION_LABELS:
-        return True
-    return False
+    return bool(labels_lower & _QUESTION_LABELS)
 
 
 async def preflight(
@@ -148,7 +146,7 @@ async def preflight(
             created_str = existing.get("created_at", "") or ""
             try:
                 created_at = datetime.fromisoformat(created_str.replace("Z", "+00:00"))
-                age_days = (datetime.now(timezone.utc) - created_at).days
+                age_days = (datetime.now(UTC) - created_at).days
             except (ValueError, TypeError):
                 age_days = 0  # Can't parse → assume recent, block it
             if age_days < _OUTCOME_RETRY_DAYS:
@@ -217,7 +215,7 @@ async def preflight(
     if issue.created_at:
         try:
             created = datetime.fromisoformat(issue.created_at.replace("Z", "+00:00"))
-            age_hours = (datetime.now(timezone.utc) - created).total_seconds() / 3600
+            age_hours = (datetime.now(UTC) - created).total_seconds() / 3600
             labels_lower = {lb.lower() for lb in (issue.labels or [])}
             is_trivial = bool(labels_lower & {"typo", "documentation", "docs", "spelling",
                                               "cleanup", "chore"})
@@ -382,7 +380,7 @@ async def _check_maintainer_active(
 
     try:
         push_dt = datetime.fromisoformat(pushed_at.replace("Z", "+00:00"))
-        age_days = (datetime.now(timezone.utc) - push_dt).days
+        age_days = (datetime.now(UTC) - push_dt).days
         if age_days > settings.repo_max_push_age_days:
             return False, f"last push {age_days}d ago (limit {settings.repo_max_push_age_days}d)"
     except (ValueError, TypeError):
@@ -450,7 +448,7 @@ async def _check_repo_cooldown(
 
     try:
         last_dt = datetime.fromisoformat(last_ts.replace("Z", "+00:00"))
-        elapsed = datetime.now(timezone.utc) - last_dt
+        elapsed = datetime.now(UTC) - last_dt
         remaining_sec = (_REPO_COOLDOWN_HOURS * 3600) - elapsed.total_seconds()
         if remaining_sec > 0:
             remaining_min = int(remaining_sec / 60)

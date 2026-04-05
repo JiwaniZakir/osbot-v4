@@ -11,12 +11,12 @@ All arithmetic, no Claude calls, no ML.  Layer 4.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.types import MemoryDBProtocol, RepoMeta, ScoredIssue
+from osbot.types import RepoMeta, ScoredIssue
 
 logger = get_logger(__name__)
 
@@ -356,7 +356,7 @@ def _compute_age_adj(created_at: str) -> float:
         return 0.0
     try:
         created = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-        age_days = (datetime.now(timezone.utc) - created).days
+        age_days = (datetime.now(UTC) - created).days
     except (ValueError, TypeError):
         return 0.0
 

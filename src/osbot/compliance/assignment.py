@@ -12,9 +12,12 @@ from __future__ import annotations
 
 import base64
 import re
+from typing import TYPE_CHECKING
 
 from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol, MemoryDBProtocol
+
+if TYPE_CHECKING:
+    from osbot.types import GitHubCLIProtocol, MemoryDBProtocol
 
 logger = get_logger(__name__)
 

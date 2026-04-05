@@ -15,7 +15,6 @@ from osbot.discovery.issue_scorer import (
 from osbot.discovery.repo_scorer import score_repo
 from osbot.types import RepoMeta
 
-
 # ---------------------------------------------------------------------------
 # Issue scoring
 # ---------------------------------------------------------------------------

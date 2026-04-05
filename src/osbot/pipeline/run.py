@@ -7,16 +7,17 @@ quality gates -> critic -> PR write -> submit.
 
 from __future__ import annotations
 
+import contextlib
 import shutil
 import tempfile
 import time
 from pathlib import Path
 
 from osbot.config import settings
+from osbot.learning.lessons import generate_reflection
 from osbot.log import get_logger
 from osbot.pipeline.assignment import (
     AWAITING,
-    READY,
     REJECTED,
     check_assignment,
     request_assignment,
@@ -24,10 +25,9 @@ from osbot.pipeline.assignment import (
 from osbot.pipeline.critic import review
 from osbot.pipeline.implementer import implement
 from osbot.pipeline.pr_writer import write_pr
-from osbot.pipeline.preflight import PreflightMeta, preflight
+from osbot.pipeline.preflight import preflight
 from osbot.pipeline.quality import run_gates
 from osbot.pipeline.submitter import submit
-from osbot.learning.lessons import generate_reflection
 from osbot.safety.circuit_breaker import record_failure, record_timeout
 from osbot.types import (
     BalancerProtocol,
@@ -509,10 +509,8 @@ async def run_pipeline(
     finally:
         # Clean up workspace
         if workspace is not None:
-            try:
+            with contextlib.suppress(Exception):
                 shutil.rmtree(workspace, ignore_errors=True)
-            except Exception:
-                pass
 
 
 async def _setup_workspace(

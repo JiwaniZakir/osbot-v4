@@ -9,6 +9,7 @@ Max 2 Claude calls per cycle.
 
 from __future__ import annotations
 
+import contextlib
 import json
 from typing import Any
 
@@ -350,9 +351,7 @@ async def run_notify_phase(
                 exc_info=True,
             )
             # Try to mark as read to avoid retry loops
-            try:
+            with contextlib.suppress(Exception):
                 await _mark_notification_read(github, thread_id)
-            except Exception:
-                pass
 
     logger.info("phase_notify_done", responses=responses_posted, mentions_total=len(mentions))

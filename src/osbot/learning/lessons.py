@@ -13,12 +13,13 @@ a structured verbal self-feedback on each rejection. Zero Claude calls.
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 
 from osbot.log import get_logger
-from osbot.types import MemoryDBProtocol
+
+if TYPE_CHECKING:
+    from osbot.types import MemoryDBProtocol
 
 logger = get_logger(__name__)
 
@@ -270,7 +271,7 @@ async def on_feedback(
         (repo, maintainer),
     )
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     if existing:
         await db.execute(

@@ -9,9 +9,13 @@ The only check remaining is the org blacklist (orgs that actively hunt bot PRs).
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.types import MemoryDBProtocol
+
+if TYPE_CHECKING:
+    from osbot.types import MemoryDBProtocol
 
 logger = get_logger(__name__)
 

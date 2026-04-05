@@ -10,9 +10,8 @@ possible slots in a week (7 days x 24 hours x 12 five-minute slots).
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
-
 from zoneinfo import ZoneInfo
 
 from osbot.config import settings

@@ -18,12 +18,16 @@ Implements ``ClaudeGatewayProtocol`` from ``osbot.types``.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from osbot.config import settings
 from osbot.log import get_logger
 from osbot.types import AgentResult, Phase, Priority
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = get_logger(__name__)
 
@@ -121,10 +125,8 @@ class ClaudeGateway:
             if not task.done():
                 task.cancel()
         for task in self._consumer_tasks:
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
         self._consumer_tasks.clear()
 
         # Drain any remaining items and resolve their futures with an error
@@ -305,6 +307,8 @@ class ClaudeGateway:
                 # Import SDK types for isinstance checks
                 from claude_agent_sdk.types import (
                     AssistantMessage as SDKAssistantMessage,
+                )
+                from claude_agent_sdk.types import (
                     ResultMessage as SDKResultMessage,
                 )
 

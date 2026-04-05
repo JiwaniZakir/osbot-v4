@@ -24,7 +24,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ TOKEN_LOW_WARN: float = 0.05       # absolute utilisation below which we suspect
 # Shared state for this run
 # ---------------------------------------------------------------------------
 
-_now_utc = datetime.now(timezone.utc)
+_now_utc = datetime.now(UTC)
 _now_str = _now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
 _24h_ago = (_now_utc - timedelta(hours=24)).isoformat()
 _7d_ago = (_now_utc - timedelta(days=7)).isoformat()
@@ -528,7 +528,7 @@ def _scope_analysis(conn: sqlite3.Connection) -> list[str]:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    ts_start = datetime.now(timezone.utc)
+    ts_start = datetime.now(UTC)
     separator = "=" * 65
 
     header_lines = [
@@ -541,7 +541,7 @@ if __name__ == "__main__":
     for line in header_lines:
         print(line, flush=True)
 
-    conn = open_db() if False else None  # placeholder — open below
+    conn = None  # opened below
 
     # Open DB
     db_path = Path(DB_PATH)
@@ -583,7 +583,7 @@ if __name__ == "__main__":
     finally:
         conn.close()
 
-    elapsed = (datetime.now(timezone.utc) - ts_start).total_seconds()
+    elapsed = (datetime.now(UTC) - ts_start).total_seconds()
     footer_lines = [
         "",
         separator,

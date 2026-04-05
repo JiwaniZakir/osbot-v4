@@ -10,11 +10,14 @@ pattern without any direct user tracking.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
+from typing import TYPE_CHECKING
 
 from osbot.log import get_logger
-from osbot.tokens.decay import DecayModel
 from osbot.types import MemoryDBProtocol, UsageDelta, UsageSnapshot
+
+if TYPE_CHECKING:
+    from osbot.tokens.decay import DecayModel
 
 logger = get_logger("tokens.decomposer")
 

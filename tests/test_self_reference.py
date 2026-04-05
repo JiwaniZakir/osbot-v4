@@ -10,11 +10,9 @@ Covers:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from unittest.mock import patch
-
-import pytest
 
 from osbot.intel.duplicates import check_claimed_in_comments
 from osbot.iteration.monitor import _poll_single_pr
@@ -24,6 +22,9 @@ from osbot.pipeline.preflight import _check_duplicate_pr
 from osbot.state.bot_state import BotState
 from osbot.state.db import MemoryDB
 from osbot.types import CLIResult, OpenPR, ScoredIssue
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -319,7 +320,7 @@ async def test_preflight_duplicate_case_insensitive(mock_settings: object) -> No
 
 def test_claim_detection_ignores_own_claims() -> None:
     """check_claimed_in_comments must skip the bot's own claim comments."""
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now_str = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     comments = [
         {
@@ -342,7 +343,7 @@ def test_claim_detection_ignores_own_claims() -> None:
 
 def test_claim_detection_flags_other_claims() -> None:
     """check_claimed_in_comments must detect claims from other users."""
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now_str = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     comments = [
         {
@@ -360,7 +361,7 @@ def test_claim_detection_flags_other_claims() -> None:
 
 def test_claim_detection_case_insensitive_bot_username() -> None:
     """Bot username comparison in claim detection must be case-insensitive."""
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now_str = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     comments = [
         {
@@ -430,7 +431,6 @@ async def test_notify_filters_own_comments(mock_settings: object) -> None:
 
     # Return different responses for sequential calls
     call_count = 0
-    original_run_gh = github.run_gh
 
     async def _sequenced_run_gh(args: list[str], cwd: str | None = None) -> CLIResult:
         nonlocal call_count

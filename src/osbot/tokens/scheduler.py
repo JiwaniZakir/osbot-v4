@@ -10,15 +10,17 @@ when confidence < 0.3.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.tokens.decay import DecayModel
-from osbot.tokens.pattern import PatternModel
 from osbot.types import UsageSnapshot, WorkerPlan
+
+if TYPE_CHECKING:
+    from osbot.tokens.decay import DecayModel
+    from osbot.tokens.pattern import PatternModel
 
 logger = get_logger("tokens.scheduler")
 
@@ -51,7 +53,7 @@ class Scheduler:
             A ``WorkerPlan`` specifying how many workers to run.
         """
         horizon = hours_ahead or settings.plan_horizon_hours
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         confidence = self._pattern.confidence
 
         # Cold start: not enough pattern data
@@ -114,7 +116,7 @@ class Scheduler:
         This is the reliable fallback when the OAuth usage endpoint is
         rate-limited or unreachable.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         confidence = self._pattern.confidence
 
         # Use bot's own consumption as a self-check

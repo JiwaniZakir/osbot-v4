@@ -12,7 +12,8 @@ confidence < 0.3.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from osbot.config import settings
 from osbot.log import get_logger
@@ -21,7 +22,9 @@ from osbot.tokens.decomposer import Decomposer
 from osbot.tokens.pattern import PatternModel
 from osbot.tokens.probe import probe
 from osbot.tokens.scheduler import Scheduler
-from osbot.types import MemoryDBProtocol, UsageSnapshot, WorkerPlan
+
+if TYPE_CHECKING:
+    from osbot.types import MemoryDBProtocol, UsageSnapshot, WorkerPlan
 
 logger = get_logger("tokens.balancer")
 
@@ -207,7 +210,7 @@ class Balancer:
                 ),
             )
             # Prune snapshots older than 7 days
-            cutoff = datetime.now(timezone.utc).isoformat()
+            cutoff = datetime.now(UTC).isoformat()
             await self._memory.execute(
                 "DELETE FROM usage_snapshots WHERE ts < datetime(?, '-7 days')",
                 (cutoff,),

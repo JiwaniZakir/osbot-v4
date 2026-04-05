@@ -8,6 +8,7 @@ find issues, score issues.  Zero Claude calls.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import random
 from typing import Any
 
@@ -53,16 +54,13 @@ async def discover(
     # burning GitHub's API budget. Remaining repos get computed next cycle.
     MAX_SIGNALS_PER_CYCLE = 50
     active_pool: list[RepoMeta] = []
-    signals_computed = 0
-
-    for candidate in candidates:
+    for signals_computed, candidate in enumerate(candidates):
         if signals_computed >= MAX_SIGNALS_PER_CYCLE:
             logger.info("signals_rate_limited", computed=signals_computed,
                         remaining=len(candidates) - signals_computed)
             break
 
         signals = await compute_signals(candidate, github, db)
-        signals_computed += 1
 
         # Small delay between signal computations (each makes 2-3 API calls)
         await asyncio.sleep(1.0)
@@ -237,12 +235,10 @@ async def _load_scoring_context(db: MemoryDBProtocol) -> dict[str, Any]:
         # Table may not exist yet or have different schema
         pass
 
-    try:
+    with contextlib.suppress(Exception):
         lessons = await db.fetchall(
             "SELECT repo, key, value, source FROM repo_facts WHERE key LIKE 'lesson_%' ORDER BY created_at DESC LIMIT 100"
         )
-    except Exception:
-        pass
 
     scope_pass_rates: dict[str, float] = {}
     try:

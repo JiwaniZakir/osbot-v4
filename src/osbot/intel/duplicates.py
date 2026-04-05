@@ -10,12 +10,14 @@ Zero Claude calls.  Layer 2.
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol
+
+if TYPE_CHECKING:
+    from osbot.types import GitHubCLIProtocol
 
 logger = get_logger(__name__)
 
@@ -72,10 +74,7 @@ async def detect_duplicates(
         return True
 
     # 2. Check our own open PRs for this repo
-    if await _check_own_prs(repo, issue_number, github):
-        return True
-
-    return False
+    return bool(await _check_own_prs(repo, issue_number, github))
 
 
 async def _check_timeline(
@@ -205,7 +204,7 @@ def check_claimed_in_comments(
     if not comments:
         return False, ""
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff = now - timedelta(days=_CLAIM_MAX_AGE_DAYS)
     effective_bot = (bot_username or settings.github_username or "").lower()
 

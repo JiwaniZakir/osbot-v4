@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import random
+from datetime import UTC
 from typing import Any
 
 from osbot.comms.phrases import contains_banned, scrub_banned
@@ -60,9 +61,9 @@ async def _is_already_reviewed(db: MemoryDBProtocol, repo: str, pr_number: int) 
 
 async def _record_review(db: MemoryDBProtocol, repo: str, pr_number: int) -> None:
     """Record that we reviewed a PR so we skip it next time."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     await db.execute(
         "INSERT OR IGNORE INTO reviewed_prs (repo, pr_number, reviewed_at) VALUES (?, ?, ?)",
         (repo, pr_number, now),

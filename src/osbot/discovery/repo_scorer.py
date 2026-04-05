@@ -10,11 +10,12 @@ Zero Claude calls.  Layer 4.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from osbot.config import settings
 from osbot.log import get_logger
-from osbot.types import RepoMeta
+
+if TYPE_CHECKING:
+    from osbot.types import RepoMeta
 
 logger = get_logger(__name__)
 

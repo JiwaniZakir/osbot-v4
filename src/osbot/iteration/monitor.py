@@ -8,11 +8,13 @@ No Claude calls -- pure GraphQL polling.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol, MemoryDBProtocol, OpenPR
+
+if TYPE_CHECKING:
+    from osbot.types import GitHubCLIProtocol, MemoryDBProtocol, OpenPR
 
 logger = get_logger(__name__)
 

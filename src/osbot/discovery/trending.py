@@ -14,7 +14,7 @@ Zero Claude calls.  Layer 4.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from osbot.config import settings
@@ -106,7 +106,7 @@ async def _search_star_velocity(
     github: GitHubCLIProtocol,
 ) -> list[dict[str, Any]]:
     """Search for repos created recently with high star counts."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=_CREATED_WINDOW_DAYS)
+    cutoff = datetime.now(UTC) - timedelta(days=_CREATED_WINDOW_DAYS)
     created_qualifier = f"created:>={cutoff.strftime('%Y-%m-%d')}"
 
     all_results: list[dict[str, Any]] = []
@@ -146,7 +146,7 @@ async def _search_issue_spike(
     github: GitHubCLIProtocol,
 ) -> list[dict[str, Any]]:
     """Search for repos with recent push activity and help-wanted issues."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=settings.repo_max_push_age_days)
+    cutoff = datetime.now(UTC) - timedelta(days=settings.repo_max_push_age_days)
     pushed_qualifier = f"pushed:>={cutoff.strftime('%Y-%m-%d')}"
 
     all_results: list[dict[str, Any]] = []

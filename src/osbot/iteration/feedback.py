@@ -14,8 +14,13 @@ from osbot.config import settings
 from osbot.log import get_logger
 from osbot.text import truncate
 from osbot.types import (
-    ClaudeGatewayProtocol, FeedbackAction, FeedbackResult,
-    FeedbackType, OpenPR, Phase, Priority,
+    ClaudeGatewayProtocol,
+    FeedbackAction,
+    FeedbackResult,
+    FeedbackType,
+    OpenPR,
+    Phase,
+    Priority,
 )
 
 logger = get_logger(__name__)

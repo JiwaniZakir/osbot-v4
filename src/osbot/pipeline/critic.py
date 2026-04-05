@@ -13,7 +13,6 @@ from osbot.config import settings
 from osbot.log import get_logger
 from osbot.text import truncate
 from osbot.types import (
-    AgentResult,
     ClaudeGatewayProtocol,
     CriticResult,
     CriticVerdict,

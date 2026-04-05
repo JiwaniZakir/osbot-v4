@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from osbot.config import settings
@@ -41,7 +41,7 @@ async def find_repos(
     candidates: list[RepoMeta] = []
     seen: set[str] = set()
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=settings.repo_max_push_age_days)
+    cutoff = datetime.now(UTC) - timedelta(days=settings.repo_max_push_age_days)
     pushed_qualifier = f"pushed:>={cutoff.strftime('%Y-%m-%d')}"
 
     for language in settings.allowed_languages:

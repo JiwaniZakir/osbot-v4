@@ -19,7 +19,7 @@ import json
 import re
 import signal
 from dataclasses import replace as dataclass_replace
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from osbot.config import settings
 from osbot.discovery import discover
@@ -30,7 +30,7 @@ from osbot.log import get_logger
 from osbot.pipeline import run_pipeline
 from osbot.state import BotState, MemoryDB, TraceWriter
 from osbot.tokens import Balancer
-from osbot.types import Correction, FeedbackType, Outcome, Trace
+from osbot.types import Correction, FeedbackType, OpenPR, Outcome, Trace
 
 logger = get_logger(__name__)
 
@@ -90,7 +90,7 @@ async def _phase_contribute(
 
             # Write trace for this pipeline completion
             trace = Trace(
-                ts=datetime.now(timezone.utc).isoformat(),
+                ts=datetime.now(UTC).isoformat(),
                 repo=result.repo,
                 issue_number=result.issue_number,
                 phase="contribute",
@@ -112,7 +112,6 @@ async def _phase_contribute(
 
             # Track submitted PRs for the iteration phase to monitor
             if result.outcome == Outcome.SUBMITTED and result.pr_number:
-                from osbot.types import OpenPR
                 pr_url = result.pr_url or f"https://github.com/{issue.repo}/pull/{result.pr_number}"
                 await state.add_open_pr(OpenPR(
                     repo=issue.repo,
@@ -120,7 +119,7 @@ async def _phase_contribute(
                     pr_number=result.pr_number,
                     url=pr_url,
                     branch=f"fix/{issue.number}",
-                    submitted_at=datetime.now(timezone.utc).isoformat(),
+                    submitted_at=datetime.now(UTC).isoformat(),
                 ))
                 logger.info(
                     "pr_tracked",
@@ -325,7 +324,7 @@ async def _phase_iterate(
 
         # Always update last_checked_at so the monitor doesn't re-trigger on the
         # same comments next cycle.  Uses dataclass_replace since OpenPR is frozen.
-        updated_pr = dataclass_replace(pr, last_checked_at=datetime.now(timezone.utc).isoformat())
+        updated_pr = dataclass_replace(pr, last_checked_at=datetime.now(UTC).isoformat())
         await state.add_open_pr(updated_pr)
 
 
@@ -349,7 +348,7 @@ async def _phase_monitor(
     if not open_prs:
         return
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     for pr in open_prs:
         try:
@@ -415,7 +414,7 @@ _CLA_COMMENT_PATTERNS: list[str] = [
 
 
 async def _check_cla_comments(
-    pr: "OpenPR",
+    pr: OpenPR,
     github: GitHubCLI,
     db: MemoryDB,
 ) -> None:
@@ -503,7 +502,7 @@ async def _check_cla_comments(
 
 
 async def _is_pr_stale(
-    pr: "OpenPR",
+    pr: OpenPR,
     github: GitHubCLI,
 ) -> bool:
     """Return ``True`` if the PR has only bot comments (no maintainer response).
@@ -553,7 +552,7 @@ async def _is_pr_stale(
 
 
 async def _close_stale_pr(
-    pr: "OpenPR",
+    pr: OpenPR,
     state: BotState,
     github: GitHubCLI,
     db: MemoryDB,
@@ -805,10 +804,10 @@ async def run() -> None:
     logger.info("orchestrator_ready", cycle_sec=settings.cycle_interval_sec)
 
     # -- Timing trackers for phase cadence --
-    last_discover = datetime.min.replace(tzinfo=timezone.utc)
-    last_review = datetime.min.replace(tzinfo=timezone.utc)
-    last_engage = datetime.min.replace(tzinfo=timezone.utc)
-    last_learn = datetime.min.replace(tzinfo=timezone.utc)
+    last_discover = datetime.min.replace(tzinfo=UTC)
+    last_review = datetime.min.replace(tzinfo=UTC)
+    last_engage = datetime.min.replace(tzinfo=UTC)
+    last_learn = datetime.min.replace(tzinfo=UTC)
 
     # -- Trace buffer for fast_diagnostic --
     recent_traces: list[Trace] = []
@@ -819,7 +818,7 @@ async def run() -> None:
     # -- Main loop (exits on shutdown signal or halt correction) --
     while not shutdown_requested.is_set():
         cycle_count += 1
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # -- Token management probe --
         try:

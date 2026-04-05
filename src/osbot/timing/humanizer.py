@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import asyncio
 import random
+
+
 class Humanizer:
     """Add human-like delays to every externally visible action.
 

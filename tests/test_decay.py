@@ -5,7 +5,7 @@ Covers recording, pruning, utilization calculation, and effective headroom.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from osbot.tokens.decay import DecayModel, _Entry
 
@@ -26,7 +26,7 @@ async def test_old_entries_pruned() -> None:
     dm = DecayModel(window_seconds=5 * 3600, capacity=1_000_000)
 
     # Manually insert an old entry (6 hours ago)
-    old_ts = datetime.now(timezone.utc) - timedelta(hours=6)
+    old_ts = datetime.now(UTC) - timedelta(hours=6)
     dm._ledger.append(_Entry(ts=old_ts, tokens=500_000, model="sonnet"))
 
     # After pruning (triggered by bot_tokens_in_window), old entry should be gone
@@ -51,7 +51,7 @@ async def test_effective_headroom() -> None:
     dm = DecayModel(window_seconds=5 * 3600, capacity=1_000_000)
 
     # Insert entries near the edge of the window (4.5 hours ago)
-    old_ts = datetime.now(timezone.utc) - timedelta(hours=4, minutes=45)
+    old_ts = datetime.now(UTC) - timedelta(hours=4, minutes=45)
     dm._ledger.append(_Entry(ts=old_ts, tokens=150_000, model="sonnet"))
 
     # Probe says 5% headroom, but ~15% of our tokens are about to decay

@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from osbot.log import get_logger
 from osbot.types import Correction, MemoryDBProtocol, Trace
@@ -35,7 +35,7 @@ _OPERATIONAL_MARKERS = (
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 async def fast_diagnostic(

@@ -13,11 +13,12 @@ from __future__ import annotations
 
 import json
 import random
+from datetime import UTC
+from typing import TYPE_CHECKING
 
 from osbot.comms.phrases import BANNED_PHRASES, contains_banned, scrub_banned
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.state.bot_state import BotState
 from osbot.timing.humanizer import Humanizer
 from osbot.types import (
     ClaudeGatewayProtocol,
@@ -27,6 +28,9 @@ from osbot.types import (
     Priority,
     ScoredIssue,
 )
+
+if TYPE_CHECKING:
+    from osbot.state.bot_state import BotState
 
 logger = get_logger(__name__)
 
@@ -62,9 +66,9 @@ async def _is_already_engaged(db: MemoryDBProtocol, repo: str, issue_number: int
 
 async def _record_engagement(db: MemoryDBProtocol, repo: str, issue_number: int) -> None:
     """Record that we engaged on an issue so we skip it next time."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     await db.execute(
         "INSERT OR IGNORE INTO engaged_issues (repo, issue_number, engaged_at) VALUES (?, ?, ?)",
         (repo, issue_number, now),

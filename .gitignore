@@ -31,9 +31,9 @@ Thumbs.db
 *.pem
 *.key
 
-# osbot runtime
-state/
-workspaces/
+# osbot runtime (top-level only, not src/osbot/state/)
+/state/
+/workspaces/
 traces.jsonl
 corrections.jsonl
 memory.db
