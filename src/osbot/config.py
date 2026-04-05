@@ -8,12 +8,25 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     """Central configuration. All fields prefixed with OSBOT_ in env."""
+
+    @model_validator(mode="after")
+    def _validate_ceilings(self) -> Settings:
+        """Ensure token ceilings are within valid bounds."""
+        for name in ("five_hour_ceiling", "seven_day_ceiling", "opus_ceiling"):
+            val = getattr(self, name)
+            if not 0.0 < val <= 1.0:
+                msg = f"{name}={val} must be in (0.0, 1.0]"
+                raise ValueError(msg)
+        if self.max_workers < 1:
+            msg = f"max_workers={self.max_workers} must be >= 1"
+            raise ValueError(msg)
+        return self
 
     model_config = {"env_prefix": "OSBOT_", "frozen": True}
 
