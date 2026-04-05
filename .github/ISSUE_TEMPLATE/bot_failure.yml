@@ -1,0 +1,39 @@
+name: Bot Failure Report
+description: Report a specific PR submission failure
+labels: ["bot-failure", "needs-triage"]
+body:
+  - type: dropdown
+    id: failure_type
+    attributes:
+      label: Failure type
+      options:
+        - timeout
+        - empty_diff
+        - self_review_rejected
+        - assignment_required
+        - duplicate_pr
+        - ci_failure
+        - scope_too_broad
+        - other
+    validations:
+      required: true
+
+  - type: input
+    id: repo_url
+    attributes:
+      label: Target repo
+      placeholder: owner/repo
+
+  - type: input
+    id: pr_url
+    attributes:
+      label: PR URL (if submitted)
+      placeholder: https://github.com/...
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      placeholder: What went wrong? Include relevant log snippets.
+    validations:
+      required: true

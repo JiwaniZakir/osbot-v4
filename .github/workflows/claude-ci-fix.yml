@@ -1,0 +1,46 @@
+name: Claude CI Auto-Fix
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+jobs:
+  auto-fix:
+    if: |
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      !startsWith(github.event.workflow_run.head_branch, 'claude-auto-fix-ci-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          fetch-depth: 0
+      - name: Restore Claude Max credentials
+        run: |
+          mkdir -p ~/.claude
+          echo "${{ secrets.CLAUDE_CREDENTIALS_B64 }}" | base64 -d | tar -xz -C ~/.claude
+          echo '{"model":"claude-sonnet-4-6"}' > ~/.claude/settings.json
+      - run: npm install -g @anthropic-ai/claude-code@latest
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - run: git checkout -b "claude-auto-fix-ci-${{ github.run_id }}"
+      - name: Fix CI failures
+        run: |
+          claude --dangerously-skip-permissions --max-turns 10 \
+            "CI failed on this branch. Fix the issues: run ruff check . --fix, ruff format ., mypy src/osbot, then pytest tests/ -q. Commit any fixes."
+      - name: Open PR
+        run: |
+          git push origin HEAD || true
+          gh pr create \
+            --title "ci: auto-fix CI failure [claude]" \
+            --body "Automated CI fix for \`${{ github.event.workflow_run.head_branch }}\`" \
+            --base "${{ github.event.workflow_run.head_branch }}" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

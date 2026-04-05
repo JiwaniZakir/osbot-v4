@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Architecture Docs
+    url: https://jiwaizakir.github.io/osbot-v4
+    about: Read the architecture docs before opening an issue

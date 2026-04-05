@@ -1,0 +1,36 @@
+site_name: osbot-v4
+site_description: Autonomous open-source contribution bot
+site_url: https://jiwaizakir.github.io/osbot-v4
+repo_url: https://github.com/JiwaniZakir/osbot-v4
+repo_name: JiwaniZakir/osbot-v4
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: cyan
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: true
+            show_root_heading: true
+  - git-revision-date-localized
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Configuration: configuration.md
+  - Deployment: deployment.md
+  - Contributing: contributing.md

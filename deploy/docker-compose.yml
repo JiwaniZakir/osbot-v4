@@ -1,0 +1,42 @@
+services:
+  osbot:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: osbot-v4
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    volumes:
+      - claude-credentials:/home/botuser/.claude
+      - gh-config:/home/botuser/.config/gh
+      - osbot-v4-state:/opt/osbot/state
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/opt/osbot/src
+      - HOME=/home/botuser
+      - OSBOT_GITHUB_USERNAME=JiwaniZakir
+      - OSBOT_STATE_DIR=/opt/osbot/state
+      - OSBOT_WORKSPACES_DIR=/opt/osbot/workspaces
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  claude-credentials:
+    external: true
+    name: deploy_claude-creds
+  gh-config:
+    external: true
+    name: deploy_gh-config
+  osbot-v4-state:
+    # Fresh volume for v4 (v3 state preserved in deploy_osbot-state)

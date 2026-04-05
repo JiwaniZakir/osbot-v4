@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment / secrets
+.env
+.env.*
+*.pem
+*.key
+
+# osbot runtime
+state/
+workspaces/
+traces.jsonl
+corrections.jsonl
+memory.db
+memory.db-journal
+memory.db-wal
+memory.db-shm
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/

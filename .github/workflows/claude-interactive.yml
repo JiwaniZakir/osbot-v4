@@ -1,0 +1,33 @@
+name: Claude Interactive
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  claude:
+    if: |
+      contains(github.event.comment.body, '@claude') &&
+      (github.event.comment.author_association == 'OWNER' ||
+       github.event.comment.author_association == 'MEMBER' ||
+       github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore Claude Max credentials
+        run: |
+          mkdir -p ~/.claude
+          echo "${{ secrets.CLAUDE_CREDENTIALS_B64 }}" | base64 -d | tar -xz -C ~/.claude
+          echo '{"model":"claude-opus-4-6"}' > ~/.claude/settings.json
+      - name: Install Claude CLI
+        run: npm install -g @anthropic-ai/claude-code@latest
+      - uses: anthropics/claude-code-action@v1
+        with:
+          trigger_phrase: "@claude"
+          use_sticky_comment: true

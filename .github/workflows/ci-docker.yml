@@ -1,0 +1,48 @@
+name: CI Docker
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main]
+
+jobs:
+  docker-test:
+    name: Tests in Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build test image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          load: true
+          tags: osbot-v4:ci-test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run lint inside container
+        run: |
+          docker run --rm osbot-v4:ci-test \
+            sh -c "pip install ruff mypy -q && \
+                   ruff check src/osbot --output-format=text && \
+                   ruff format --check src/osbot && \
+                   mypy src/osbot"
+
+      - name: Run tests inside container
+        run: |
+          docker run --rm \
+            -e PYTHONPATH=/opt/osbot/src \
+            osbot-v4:ci-test \
+            sh -c "pip install pytest pytest-asyncio pytest-cov -q && \
+                   pytest tests/ --cov=osbot --cov-report=term-missing --cov-fail-under=75 -q"
+
+      - name: Container health check
+        run: |
+          docker run --rm osbot-v4:ci-test python3 /opt/osbot/deploy/health_check.py || true

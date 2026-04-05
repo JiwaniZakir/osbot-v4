@@ -1,0 +1,220 @@
+name: PR Quality Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    branches: [main, dev]
+
+jobs:
+  quality-gate:
+    name: Claude Quality Gate
+    if: |
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Restore Claude Max credentials
+        run: |
+          mkdir -p ~/.claude
+          echo "${{ secrets.CLAUDE_CREDENTIALS_B64 }}" | base64 -d | tar -xz -C ~/.claude
+          echo '{"model":"claude-opus-4-6"}' > ~/.claude/settings.json
+
+      - name: Install Claude CLI
+        run: |
+          npm install -g @anthropic-ai/claude-code@latest
+          pip install pydantic structlog -q
+
+      - name: Extract PR diff
+        run: |
+          git diff origin/${{ github.base_ref }}...${{ github.event.pull_request.head.sha }} \
+            > /tmp/pr_diff.txt
+          echo "Diff lines: $(wc -l < /tmp/pr_diff.txt)"
+
+      - name: Run Claude quality evaluation
+        id: quality
+        run: |
+          python3 << 'PYEOF'
+          import subprocess, json, sys, os, textwrap, re
+
+          diff = open('/tmp/pr_diff.txt').read()
+          if len(diff) > 15000:
+              diff = diff[:15000] + "\n... [diff truncated at 15k chars]"
+
+          pr_title = os.environ.get('PR_TITLE', '')
+          pr_body  = os.environ.get('PR_BODY', '')
+
+          prompt = textwrap.dedent(f"""
+          You are the osbot-v4 PR quality gate. Evaluate this pull request strictly.
+
+          PR Title: {pr_title}
+          PR Body: {pr_body}
+
+          Diff:
+          {diff}
+
+          osbot-v4 conventions (MUST be followed):
+          - asyncio everywhere — no threads, no subprocess.run, no blocking I/O
+          - All subprocess calls use asyncio.create_subprocess_exec
+          - structlog for logging — never print() or stdlib logging
+          - Type hints on every function signature
+          - No upward layer imports (Layer N never imports Layer N+1)
+          - pydantic models for all data structures crossing module boundaries
+          - Tests use pytest-asyncio with asyncio_mode=auto
+          - SQLite uses aiosqlite; in-memory for tests
+
+          Evaluate:
+          1. REGRESSION: Does this diff remove tests, weaken type safety, remove safety guards,
+             introduce blocking I/O, or break existing functionality?
+          2. VALUE: Is this a meaningful contribution? (not whitespace-only, not duplicate,
+             not removing more than adding without clear benefit)
+          3. CONVENTIONS: Does it follow the asyncio/structlog/type hints rules above?
+          4. FIXES: If there are fixable issues (wrong logging call, missing type hint, minor),
+             list the EXACT edits needed as file:old_string -> new_string pairs.
+
+          Output ONLY valid JSON (no markdown fences):
+          {{
+            "verdict": "APPROVE" or "REFINE" or "REJECT",
+            "regression_detected": true or false,
+            "regression_detail": "...",
+            "value_assessment": "high" or "medium" or "low" or "none",
+            "value_detail": "...",
+            "convention_violations": ["..."],
+            "review_comment": "markdown comment to post on the PR",
+            "fixes": [
+              {{"file": "src/osbot/...", "old": "exact string", "new": "replacement"}}
+            ]
+          }}
+
+          REJECT if: regression_detected=true OR value_assessment="none".
+          REFINE if: convention_violations exist but no regression and value >= medium.
+          APPROVE if: no violations and value >= medium.
+          """)
+
+          result = subprocess.run(
+              ['claude', '--dangerously-skip-permissions',
+               '--output-format', 'json',
+               '--max-turns', '3',
+               '--print', prompt],
+              capture_output=True, text=True, timeout=120
+          )
+
+          raw = result.stdout.strip()
+          try:
+              outer = json.loads(raw)
+              inner = outer.get('result', raw)
+          except Exception:
+              inner = raw
+
+          try:
+              verdict_data = json.loads(inner)
+          except Exception:
+              m = re.search(r'\{.*\}', inner, re.DOTALL)
+              verdict_data = json.loads(m.group()) if m else {
+                  "verdict": "APPROVE",
+                  "review_comment": "Quality check inconclusive — manual review required."
+              }
+
+          print(json.dumps(verdict_data, indent=2))
+
+          with open('/tmp/verdict.json', 'w') as f:
+              json.dump(verdict_data, f)
+
+          verdict = verdict_data.get('verdict', 'APPROVE')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"verdict={verdict}\n")
+          PYEOF
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+
+      - name: Apply REFINE fixes
+        if: steps.quality.outputs.verdict == 'REFINE'
+        run: |
+          python3 << 'PYEOF'
+          import json
+
+          verdict = json.load(open('/tmp/verdict.json'))
+          fixes = verdict.get('fixes', [])
+          if not fixes:
+              print("No specific fixes to apply")
+              exit(0)
+
+          for fix in fixes:
+              filepath = fix.get('file')
+              old = fix.get('old')
+              new = fix.get('new')
+              if not all([filepath, old, new]):
+                  continue
+              try:
+                  content = open(filepath).read()
+                  if old in content:
+                      open(filepath, 'w').write(content.replace(old, new, 1))
+                      print(f"Fixed {filepath}")
+                  else:
+                      print(f"SKIP {filepath}: old string not found")
+              except Exception as e:
+                  print(f"Error fixing {filepath}: {e}")
+          PYEOF
+
+          if git diff --quiet; then
+            echo "No file changes applied"
+          else
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git add -A
+            git commit -m "refine: apply quality gate suggestions [auto]"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+            echo "Refinements pushed"
+          fi
+
+      - name: Post review comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const verdict = JSON.parse(fs.readFileSync('/tmp/verdict.json', 'utf8'));
+            const icons = { APPROVE: '\u2705', REFINE: '\uD83D\uDD27', REJECT: '\u274C' };
+            const icon = icons[verdict.verdict] || '\u2753';
+
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body: `## ${icon} Claude Quality Gate: ${verdict.verdict}\n\n${verdict.review_comment || ''}`,
+              event: verdict.verdict === 'REJECT' ? 'REQUEST_CHANGES' : 'COMMENT'
+            });
+
+            if (verdict.verdict === 'REJECT') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '> PR closed by quality gate. See review above for details.\n> Reopen after addressing the feedback.'
+              });
+              await github.rest.pulls.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                state: 'closed'
+              });
+            }
+
+      - name: Fail on REJECT
+        if: steps.quality.outputs.verdict == 'REJECT'
+        run: exit 1
