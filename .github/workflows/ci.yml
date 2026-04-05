@@ -25,7 +25,7 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check . --output-format=github
       - run: ruff format --check .
-      - run: mypy src/osbot --ignore-missing-imports --no-strict
+      - run: mypy src/osbot
 
   test:
     name: Test (Python ${{ matrix.python-version }})
