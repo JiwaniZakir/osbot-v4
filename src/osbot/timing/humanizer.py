@@ -33,10 +33,26 @@ class Humanizer:
     # Async delays (actually sleep)
     # ------------------------------------------------------------------
 
-    async def delay_pr_creation(self) -> None:
-        """Wait 15-45 minutes before creating a PR after implementation."""
-        seconds = self.jitter((self.PR_DELAY_MIN + self.PR_DELAY_MAX) / 2, variance=0.5)
-        seconds = max(self.PR_DELAY_MIN, min(self.PR_DELAY_MAX, seconds))
+    async def delay_pr_creation(self, avg_response_hours: float | None = None) -> None:
+        """Wait before creating a PR after implementation.
+
+        Args:
+            avg_response_hours: Average maintainer response time in hours.
+                If < 12h (fast responder), use shorter delays (10-20 min).
+                If > 72h (slow responder), use longer delays (30-60 min).
+                If *None* or in between, use the default 15-45 min range.
+        """
+        if avg_response_hours is not None and avg_response_hours < 12:
+            # Fast-responding repo: shorter delay is fine
+            delay_min, delay_max = 600, 1200  # 10-20 min
+        elif avg_response_hours is not None and avg_response_hours > 72:
+            # Slow-responding repo: no rush, blend in with longer delay
+            delay_min, delay_max = 1800, 3600  # 30-60 min
+        else:
+            delay_min, delay_max = self.PR_DELAY_MIN, self.PR_DELAY_MAX
+
+        seconds = self.jitter((delay_min + delay_max) / 2, variance=0.5)
+        seconds = max(delay_min, min(delay_max, seconds))
         await asyncio.sleep(seconds)
 
     async def delay_feedback_response(self) -> None:

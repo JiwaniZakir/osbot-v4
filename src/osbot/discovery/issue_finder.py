@@ -69,7 +69,7 @@ _MAX_CREATED_DAYS = 90
 _MAX_UPDATED_DAYS = 30
 
 # Concurrency for GraphQL enrichment (avoid overwhelming the API).
-_ENRICH_CONCURRENCY = 5
+_ENRICH_CONCURRENCY = 15
 
 # Max issues to enrich per repo (don't spend all budget on one repo).
 _MAX_ISSUES_PER_REPO = 5

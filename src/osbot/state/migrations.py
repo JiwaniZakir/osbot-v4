@@ -259,6 +259,11 @@ MIGRATIONS: list[list[str]] = [
         "CREATE INDEX IF NOT EXISTS idx_skills_type_lang ON skills(issue_type, language)",
         "CREATE INDEX IF NOT EXISTS idx_skills_pattern ON skills(pattern)",
     ],
+    # --- Migration 7: Add confidence column to reflections ---
+    [
+        "ALTER TABLE reflections ADD COLUMN confidence REAL DEFAULT 0.9",
+        "CREATE INDEX IF NOT EXISTS idx_reflections_confidence ON reflections(confidence DESC)",
+    ],
 ]
 
 
