@@ -46,6 +46,12 @@ async def _phase_discover(
     state: BotState,
 ) -> None:
     """Run the full discovery pipeline and enqueue scored issues."""
+    # Guard: skip discovery when the queue is already well-stocked
+    queue_len = len(state.issue_queue)
+    if queue_len >= 30:
+        logger.info("phase_discover_skip", reason=f"queue has {queue_len} items")
+        return
+
     logger.info("phase_discover_start")
     try:
         scored_issues = await discover(github, db)
@@ -682,11 +688,18 @@ async def _close_stale_pr(
 
 
 async def _phase_review(
+    state: BotState,
     github: GitHubCLI,
     db: MemoryDB,
     gateway: object,
 ) -> None:
     """Review others' open PRs to build reputation."""
+    # Guard: only review when we have open PRs (reputation investment)
+    open_prs = await state.get_open_prs()
+    if not open_prs:
+        logger.debug("phase_review_skip", reason="no open PRs")
+        return
+
     from osbot.orchestrator.review import run_review_phase
 
     try:
@@ -702,6 +715,12 @@ async def _phase_engage(
     gateway: object,
 ) -> None:
     """Comment helpfully on issues before contributing."""
+    # Guard: only engage when we have open PRs (reputation investment)
+    open_prs = await state.get_open_prs()
+    if not open_prs:
+        logger.debug("phase_engage_skip", reason="no open PRs")
+        return
+
     from osbot.orchestrator.engage import run_engage_phase
 
     try:
@@ -952,7 +971,7 @@ async def run() -> None:
                 # Review on its own timer
                 review_elapsed = (now - last_review).total_seconds()
                 if review_elapsed >= settings.review_interval_sec:
-                    tg.create_task(_phase_review(github, db, gateway))
+                    tg.create_task(_phase_review(state, github, db, gateway))
                     last_review = now
 
                 # Engage on its own timer

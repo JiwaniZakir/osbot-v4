@@ -455,8 +455,14 @@ class MemoryDB:
         issue_type: str | None = None,
         issue_labels: list[str] | None = None,
         applicable_repos: list[str] | None = None,
+        confidence: float = 0.9,
     ) -> int:
         """Store a structured reflection after a pipeline rejection.
+
+        Args:
+            confidence: Graduated confidence (0.3 for 1st rejection, 0.6 for
+                2nd, 0.9 for 3rd+). Higher-confidence reflections are
+                preferred when injecting into prompts.
 
         Returns the rowid of the inserted reflection.
         """
@@ -464,9 +470,9 @@ class MemoryDB:
             """
             INSERT INTO reflections
                 (repo, issue_number, failure_phase, failure_reason, reflection,
-                 issue_type, issue_labels, applicable_repos, used_count,
-                 led_to_success, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
+                 issue_type, issue_labels, applicable_repos, confidence,
+                 used_count, led_to_success, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
             """,
             (
                 repo,
@@ -477,6 +483,7 @@ class MemoryDB:
                 issue_type,
                 json.dumps(issue_labels) if issue_labels else None,
                 json.dumps(applicable_repos) if applicable_repos else None,
+                confidence,
                 self._utcnow(),
             ),
         )
@@ -505,7 +512,7 @@ class MemoryDB:
                 """
                 SELECT * FROM reflections
                 WHERE repo = ? AND issue_type = ?
-                ORDER BY created_at DESC LIMIT ?
+                ORDER BY confidence DESC, created_at DESC LIMIT ?
                 """,
                 (repo, issue_type, limit),
             )
@@ -519,7 +526,7 @@ class MemoryDB:
                 """
                 SELECT * FROM reflections
                 WHERE issue_type = ? AND repo != ?
-                ORDER BY created_at DESC LIMIT ?
+                ORDER BY confidence DESC, created_at DESC LIMIT ?
                 """,
                 (issue_type, repo, remaining + len(seen_ids)),
             )
@@ -535,7 +542,7 @@ class MemoryDB:
                 """
                 SELECT * FROM reflections
                 WHERE repo = ?
-                ORDER BY created_at DESC LIMIT ?
+                ORDER BY confidence DESC, created_at DESC LIMIT ?
                 """,
                 (repo, remaining + len(seen_ids)),
             )

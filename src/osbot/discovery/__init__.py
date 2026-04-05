@@ -52,7 +52,7 @@ async def discover(
     # Step 2 & 3: Compute signals and score, build active pool.
     # Rate-limit signal computation: max 50 repos per cycle to avoid
     # burning GitHub's API budget. Remaining repos get computed next cycle.
-    MAX_SIGNALS_PER_CYCLE = 50
+    MAX_SIGNALS_PER_CYCLE = 75
     active_pool: list[RepoMeta] = []
     for signals_computed, candidate in enumerate(candidates):
         if signals_computed >= MAX_SIGNALS_PER_CYCLE:

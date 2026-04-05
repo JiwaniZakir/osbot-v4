@@ -1,8 +1,14 @@
 """Lesson extraction -- event-triggered learning from outcome summaries.
 
 Uses compressed narrative summaries (Pattern 2) for richer lesson synthesis.
-When a merge or 3rd rejection happens, reads recent summaries and extracts
-a generalizable lesson stored as a repo_fact.
+When a merge happens, reads recent summaries and extracts a generalizable
+lesson stored as a repo_fact. Negative repo_fact lessons are stored on the
+3rd+ rejection.
+
+Reflections are generated on EVERY rejection with graduated confidence:
+- 1st rejection: confidence=0.3 (could be noise)
+- 2nd rejection: confidence=0.6 (emerging pattern)
+- 3rd+ rejection: confidence=0.9 (confirmed pattern)
 
 Zero Claude calls for extraction (pattern matching on summaries).
 Optional 1 Claude call only for complex patterns the arithmetic can't explain.
@@ -105,10 +111,15 @@ async def on_merge(repo: str, issue_number: int, db: MemoryDBProtocol) -> str | 
 
 
 async def on_rejection(repo: str, issue_number: int, reason: str, db: MemoryDBProtocol) -> str | None:
-    """Track rejections and extract negative lessons on the 3rd rejection.
+    """Generate a reflection on EVERY rejection with graduated confidence.
 
-    Uses recent summaries to find patterns across multiple failures.
-    Returns the lesson text on the 3rd rejection, None otherwise.
+    Confidence scales with rejection count for this repo:
+    - 1st rejection: confidence=0.3 (could be noise)
+    - 2nd rejection: confidence=0.6 (emerging pattern)
+    - 3rd+ rejection: confidence=0.9 (confirmed pattern)
+
+    Also stores a negative repo_fact lesson on the 3rd+ rejection.
+    Returns the lesson text, or None if no lesson could be extracted.
     """
     # Count rejections for this repo
     all_outcomes = await db.fetchall(
@@ -123,11 +134,11 @@ async def on_rejection(repo: str, issue_number: int, reason: str, db: MemoryDBPr
 
     rejection_count = len(all_outcomes)
 
-    if rejection_count < 3:
-        logger.debug("rejection_tracked", repo=repo, count=rejection_count, threshold=3)
-        return None
+    # Graduated confidence: 1st=0.3, 2nd=0.6, 3rd+=0.9
+    _GRADUATED_CONFIDENCE = {1: 0.3, 2: 0.6}
+    confidence = _GRADUATED_CONFIDENCE.get(rejection_count, 0.9)
 
-    # 3rd+ rejection: extract a lesson from the pattern
+    # Extract lesson from available data
     reasons = [o.get("failure_reason", "") or "" for o in all_outcomes[:5]]
     summaries = [o.get("summary", "") or "" for o in all_outcomes[:5]]
 
@@ -141,23 +152,34 @@ async def on_rejection(repo: str, issue_number: int, reason: str, db: MemoryDBPr
 
     if not lesson_parts:
         # Generic lesson from the most common failure reason
-        lesson_parts.append(f"Repeated failures on this repo. Last reasons: {'; '.join(reasons[:3])}")
+        if rejection_count >= 3:
+            lesson_parts.append(f"Repeated failures on this repo. Last reasons: {'; '.join(reasons[:3])}")
+        else:
+            lesson_parts.append(f"Failed on this repo: {reason[:150]}")
 
     lesson = " ".join(lesson_parts)
 
-    # Store as negative lesson
-    await db.set_repo_fact(
+    # Store as negative repo_fact lesson on 3rd+ rejection
+    if rejection_count >= 3:
+        await db.set_repo_fact(
+            repo=repo,
+            key=f"lesson_negative_{rejection_count}",
+            value=lesson[:500],
+            source="rejection_pattern",
+            confidence=min(0.5 + 0.1 * rejection_count, 0.95),
+        )
+
+        if hasattr(db, "rebuild_fact_index"):
+            await db.rebuild_fact_index(repo)
+
+    logger.info(
+        "lesson_extracted",
         repo=repo,
-        key=f"lesson_negative_{rejection_count}",
-        value=lesson[:500],
-        source="rejection_pattern",
-        confidence=min(0.5 + 0.1 * rejection_count, 0.95),
+        type="negative",
+        rejection_count=rejection_count,
+        confidence=confidence,
+        lesson=lesson[:100],
     )
-
-    if hasattr(db, "rebuild_fact_index"):
-        await db.rebuild_fact_index(repo)
-
-    logger.info("lesson_extracted", repo=repo, type="negative", rejection_count=rejection_count, lesson=lesson[:100])
     return lesson
 
 
@@ -225,6 +247,22 @@ async def generate_reflection(
         f"{advice}"
     )
 
+    # Compute graduated confidence from rejection count for this repo
+    try:
+        rejection_count_row = await db.fetchval(
+            """
+            SELECT COUNT(*) FROM outcomes
+            WHERE repo = ? AND outcome IN ('rejected', 'failed')
+            """,
+            (repo,),
+        )
+        rejection_count = int(rejection_count_row or 0)
+    except Exception:
+        rejection_count = 1  # default to low confidence on error
+
+    _GRADUATED_CONFIDENCE = {1: 0.3, 2: 0.6}
+    confidence = _GRADUATED_CONFIDENCE.get(rejection_count, 0.9)
+
     try:
         if hasattr(db, "record_reflection"):
             await db.record_reflection(
@@ -236,6 +274,7 @@ async def generate_reflection(
                 issue_type=issue_type,
                 issue_labels=labels,
                 applicable_repos=[repo],
+                confidence=confidence,
             )
             logger.info(
                 "reflection_generated",
@@ -243,6 +282,7 @@ async def generate_reflection(
                 issue=issue_number,
                 phase=failure_phase,
                 issue_type=issue_type,
+                confidence=confidence,
             )
             return reflection
     except Exception as exc:
@@ -482,6 +522,22 @@ async def generate_real_reflection(
 
         reflection_text = result.text.strip()
 
+        # Compute graduated confidence from rejection count for this repo
+        try:
+            rejection_count_row = await db.fetchval(
+                """
+                SELECT COUNT(*) FROM outcomes
+                WHERE repo = ? AND outcome IN ('rejected', 'failed')
+                """,
+                (repo,),
+            )
+            rejection_count = int(rejection_count_row or 0)
+        except Exception:
+            rejection_count = 1
+
+        _GRADUATED_CONFIDENCE = {1: 0.3, 2: 0.6}
+        confidence = _GRADUATED_CONFIDENCE.get(rejection_count, 0.9)
+
         if hasattr(db, "record_reflection"):
             await db.record_reflection(
                 repo=repo,
@@ -491,6 +547,7 @@ async def generate_real_reflection(
                 reflection=reflection_text[:500],
                 issue_type=issue_type,
                 issue_labels=labels,
+                confidence=confidence,
             )
 
         logger.info(
