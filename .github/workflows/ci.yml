@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -38,13 +38,13 @@ jobs:
         python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: pip install -e ".[dev]"
       - run: pytest tests/ --cov=osbot --cov-report=xml --cov-report=term-missing --cov-fail-under=30
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v6
         if: matrix.python-version == '3.12' && always()
         with:
           fail_ci_if_error: false
