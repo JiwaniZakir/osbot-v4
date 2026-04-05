@@ -95,17 +95,11 @@ async def compute_signals(
                 pass
 
     external_merge_rate = ext_merged / ext_total if ext_total > 0 else 0.0
-    avg_response_hours = (
-        sum(response_hours_list) / len(response_hours_list)
-        if response_hours_list
-        else 0.0
-    )
+    avg_response_hours = sum(response_hours_list) / len(response_hours_list) if response_hours_list else 0.0
 
     # Close-completion rate (all PRs)
     total_closed = len(recent_prs)
-    total_merged = sum(
-        1 for pr in recent_prs if pr.get("state") == "MERGED" or pr.get("mergedAt")
-    )
+    total_merged = sum(1 for pr in recent_prs if pr.get("state") == "MERGED" or pr.get("mergedAt"))
     close_completion_rate = total_merged / total_closed if total_closed > 0 else 0.0
 
     signals: dict[str, Any] = {
@@ -124,9 +118,7 @@ async def compute_signals(
     return signals
 
 
-async def _cache_signals(
-    repo: str, signals: dict[str, Any], db: MemoryDBProtocol
-) -> None:
+async def _cache_signals(repo: str, signals: dict[str, Any], db: MemoryDBProtocol) -> None:
     """Insert or replace repo signals in the cache table."""
     await db.execute(
         """

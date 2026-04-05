@@ -27,8 +27,11 @@ logger = get_logger(__name__)
 
 
 async def apply_patch(
-    pr: OpenPR, feedback: FeedbackResult, workspace: str,
-    gateway: ClaudeGatewayProtocol, github: GitHubCLIProtocol,
+    pr: OpenPR,
+    feedback: FeedbackResult,
+    workspace: str,
+    gateway: ClaudeGatewayProtocol,
+    github: GitHubCLIProtocol,
 ) -> bool:
     """Apply feedback-requested changes to the PR branch (Call #5).
 
@@ -50,9 +53,7 @@ async def apply_patch(
         # Fetch branch; commit lands at FETCH_HEAD, then create local branch from it.
         fetch = await github.run_git(["fetch", "origin", pr.branch], cwd=workspace)
         if fetch.success:
-            co = await github.run_git(
-                ["checkout", "-b", pr.branch, "FETCH_HEAD"], cwd=workspace
-            )
+            co = await github.run_git(["checkout", "-b", pr.branch, "FETCH_HEAD"], cwd=workspace)
         if not co.success:
             logger.warning("patch_checkout_failed", repo=pr.repo, error=co.stderr[:200])
             return False
@@ -61,9 +62,12 @@ async def apply_patch(
     # Build prompt and invoke Claude.
     prompt = _build_prompt(pr, feedback)
     result = await gateway.invoke(
-        prompt, phase=Phase.ITERATE, model=settings.patch_applier_model,
+        prompt,
+        phase=Phase.ITERATE,
+        model=settings.patch_applier_model,
         allowed_tools=["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
-        cwd=workspace, timeout=settings.patch_applier_timeout_sec,
+        cwd=workspace,
+        timeout=settings.patch_applier_timeout_sec,
         priority=Priority.PATCH_APPLIER,
         max_turns=8,
     )
@@ -101,9 +105,9 @@ async def apply_patch(
 
 
 _DANGEROUS_DETAIL_PATTERNS = re.compile(
-    r'`[^`]*`'                  # backtick command: `rm -rf ...`
-    r'|\$\([^)]*\)'             # subshell: $(command)
-    r'|(?:^|\s)(?:bash|sh|python|curl|wget|nc|eval)\s',
+    r"`[^`]*`"  # backtick command: `rm -rf ...`
+    r"|\$\([^)]*\)"  # subshell: $(command)
+    r"|(?:^|\s)(?:bash|sh|python|curl|wget|nc|eval)\s",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -157,7 +161,8 @@ async def _has_conflicts(workspace: str, github: GitHubCLIProtocol) -> bool:
     """Check if the branch has merge conflicts with origin/main."""
     await github.run_git(["fetch", "origin"], cwd=workspace)
     result = await github.run_git(
-        ["merge", "--no-commit", "--no-ff", "origin/main"], cwd=workspace,
+        ["merge", "--no-commit", "--no-ff", "origin/main"],
+        cwd=workspace,
     )
     await github.run_git(["merge", "--abort"], cwd=workspace)
     return not result.success and "conflict" in result.stderr.lower()

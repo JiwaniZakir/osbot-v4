@@ -40,11 +40,20 @@ async def benchmark_repo(
         Dict with benchmark data, or None if insufficient data.
     """
     # Fetch recent merged PRs with detail (including body for length analysis)
-    result = await github.run_gh([
-        "pr", "list", "--repo", repo, "--state", "merged",
-        "--limit", "30", "--json",
-        "author,additions,deletions,changedFiles,labels,title,mergedAt,body,files",
-    ])
+    result = await github.run_gh(
+        [
+            "pr",
+            "list",
+            "--repo",
+            repo,
+            "--state",
+            "merged",
+            "--limit",
+            "30",
+            "--json",
+            "author,additions,deletions,changedFiles,labels,title,mergedAt,body,files",
+        ]
+    )
 
     if not result.success:
         logger.debug("benchmark_fetch_failed", repo=repo, error=result.stderr[:200])
@@ -73,7 +82,7 @@ async def benchmark_repo(
         deletions = pr.get("deletions", 0) or 0
         total_lines.append(additions + deletions)
 
-        title = (pr.get("title") or "")
+        title = pr.get("title") or ""
         title_lengths.append(len(title))
         if "test" in title.lower() or "spec" in title.lower():
             test_touch_count += 1

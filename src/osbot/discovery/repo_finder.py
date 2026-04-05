@@ -49,9 +49,7 @@ async def find_repos(
             # 2.5s delay between searches to stay under GitHub's 30/min Search API limit
             # 32 combos × 2.5s = 80s total, well within a single discovery cycle
             await asyncio.sleep(2.5)
-            repos = await _search_batch(
-                github, language, keyword, pushed_qualifier
-            )
+            repos = await _search_batch(github, language, keyword, pushed_qualifier)
             for repo_data in repos:
                 full_name = repo_data.get("fullName", "")
                 if not full_name or full_name in seen:
@@ -94,18 +92,26 @@ async def _search_batch(
 ) -> list[dict[str, Any]]:
     """Run a single ``gh search repos`` call and return parsed results."""
     # repositoryTopics is not available in gh search results — use available fields
-    result = await github.run_gh([
-        "search", "repos",
-        "--language", language,
-        "--sort", "updated",
-        "--order", "desc",
-        "--limit", "30",
-        "--json", "fullName,description,language,stargazersCount,pushedAt,isArchived",
-        "--",
-        f"topic:{keyword}",
-        f"stars:{settings.repo_min_stars}..{settings.repo_max_stars}",
-        pushed_qualifier,
-    ])
+    result = await github.run_gh(
+        [
+            "search",
+            "repos",
+            "--language",
+            language,
+            "--sort",
+            "updated",
+            "--order",
+            "desc",
+            "--limit",
+            "30",
+            "--json",
+            "fullName,description,language,stargazersCount,pushedAt,isArchived",
+            "--",
+            f"topic:{keyword}",
+            f"stars:{settings.repo_min_stars}..{settings.repo_max_stars}",
+            pushed_qualifier,
+        ]
+    )
 
     if not result.success:
         logger.debug("search_failed", language=language, keyword=keyword, stderr=result.stderr[:200])

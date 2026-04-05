@@ -109,10 +109,5 @@ async def _send_via_chat_webhook(
     from osbot.comms.webhook import send_alert
 
     # Format the message so it stands out in the chat channel
-    message = (
-        f"EMAIL ALERT for {to}\n"
-        f"Subject: {subject}\n"
-        f"---\n"
-        f"{body}"
-    )
+    message = f"EMAIL ALERT for {to}\nSubject: {subject}\n---\n{body}"
     return await send_alert(message, severity=severity)

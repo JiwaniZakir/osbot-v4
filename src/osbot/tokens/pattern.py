@@ -112,10 +112,7 @@ class PatternModel:
         if not self._cache:
             return 0.0
 
-        covered = sum(
-            1 for _, count in self._cache.values()
-            if count >= _MIN_SAMPLES_FOR_FULL_CONFIDENCE
-        )
+        covered = sum(1 for _, count in self._cache.values() if count >= _MIN_SAMPLES_FOR_FULL_CONFIDENCE)
         coverage = covered / _TOTAL_SLOTS
         # Scale: 80% coverage = 1.0, linear below
         return min(coverage / 0.8, 1.0)
@@ -130,8 +127,13 @@ class PatternModel:
         result: list[PatternSlot] = []
         for (day, hour, slot), (total, count) in sorted(self._cache.items()):
             avg = total / count if count > 0 else 0.0
-            result.append(PatternSlot(
-                day_of_week=day, hour=hour, slot=slot,
-                avg_user_delta=avg, sample_count=count,
-            ))
+            result.append(
+                PatternSlot(
+                    day_of_week=day,
+                    hour=hour,
+                    slot=slot,
+                    avg_user_delta=avg,
+                    sample_count=count,
+                )
+            )
         return result

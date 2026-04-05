@@ -132,7 +132,6 @@ MIGRATIONS: list[list[str]] = [
         # This stores a ~200-token AI-compressed summary of the full trace
         # alongside the structured fields. Richer data for lesson synthesis.
         "ALTER TABLE outcomes ADD COLUMN summary TEXT DEFAULT ''",
-
         # Fact index for progressive disclosure:
         # A compact, token-efficient index of all current facts for a repo.
         # Updated whenever facts change. The implementation prompt injects
@@ -172,7 +171,6 @@ MIGRATIONS: list[list[str]] = [
         "CREATE INDEX IF NOT EXISTS idx_reflections_repo ON reflections(repo)",
         "CREATE INDEX IF NOT EXISTS idx_reflections_type ON reflections(issue_type)",
         "CREATE INDEX IF NOT EXISTS idx_reflections_phase ON reflections(failure_phase)",
-
         # Step-level checkpoints (RLVR/PRM).
         # Decomposes binary merge/reject into per-phase pass/fail signals
         # so we can identify which phase is the bottleneck.

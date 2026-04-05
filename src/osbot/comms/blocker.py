@@ -209,6 +209,7 @@ async def notify_blocker(
 
     # Send
     from osbot.comms.email import send_email
+
     severity = "critical" if blocker_type in ("auth_expired", "health_failed") else "warning"
     sent = await send_email(
         to=settings.alert_email,

@@ -34,9 +34,7 @@ class GraphQLClient:
     # Issue detail (comments + timeline)
     # ------------------------------------------------------------------
 
-    async def issue_detail(
-        self, owner: str, repo: str, number: int
-    ) -> dict[str, Any]:
+    async def issue_detail(self, owner: str, repo: str, number: int) -> dict[str, Any]:
         """Fetch an issue with comments, timeline events, reactions, and author associations.
 
         Returns the ``repository.issue`` node from the GraphQL response.
@@ -143,9 +141,7 @@ class GraphQLClient:
           }
         }
         """
-        data = await self._gh.graphql(
-            query, variables={"owner": owner, "repo": repo}
-        )
+        data = await self._gh.graphql(query, variables={"owner": owner, "repo": repo})
         repo_data = data.get("data", {}).get("repository", {})
         if not repo_data:
             logger.warning("graphql_repo_not_found", owner=owner, repo=repo)
@@ -167,18 +163,14 @@ class GraphQLClient:
             "recent_prs": prs,
             "open_issues_count": repo_data.get("issues", {}).get("totalCount", 0),
             "has_ci": has_ci,
-            "default_branch": (
-                repo_data.get("defaultBranchRef", {}) or {}
-            ).get("name", "main"),
+            "default_branch": (repo_data.get("defaultBranchRef", {}) or {}).get("name", "main"),
         }
 
     # ------------------------------------------------------------------
     # PR comments (with optional ``since`` filter)
     # ------------------------------------------------------------------
 
-    async def pr_comments(
-        self, owner: str, repo: str, number: int, since: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def pr_comments(self, owner: str, repo: str, number: int, since: str | None = None) -> list[dict[str, Any]]:
         """Fetch PR review comments and issue-style comments.
 
         Args:

@@ -43,11 +43,11 @@ class Settings(BaseSettings):
     # -----------------------------------------------------------------------
     # Orchestrator
     # -----------------------------------------------------------------------
-    cycle_interval_sec: int = 600                   # 10 min main loop
-    discover_interval_sec: int = 1800               # 30 min
-    review_interval_sec: int = 3600                  # 1 hour
-    engage_interval_sec: int = 1800                  # 30 min
-    learn_interval_sec: int = 43200                  # 12 hours
+    cycle_interval_sec: int = 600  # 10 min main loop
+    discover_interval_sec: int = 1800  # 30 min
+    review_interval_sec: int = 3600  # 1 hour
+    engage_interval_sec: int = 1800  # 30 min
+    learn_interval_sec: int = 43200  # 12 hours
 
     # -----------------------------------------------------------------------
     # Concurrency — max_workers used by balancer/scheduler for worker cap
@@ -57,18 +57,18 @@ class Settings(BaseSettings):
     # -----------------------------------------------------------------------
     # Token management
     # -----------------------------------------------------------------------
-    five_hour_ceiling: float = 0.60                  # Used by balancer + scheduler
-    seven_day_ceiling: float = 0.50                  # Used by balancer + scheduler
-    opus_ceiling: float = 0.40                       # Used by balancer
-    plan_horizon_hours: float = 2.0                  # Used by scheduler
-    estimated_window_capacity: int = 2_000_000       # Used by balancer, scheduler, decay
-    timezone: str = "US/Eastern"                     # Used by scheduler + pattern
+    five_hour_ceiling: float = 0.60  # Used by balancer + scheduler
+    seven_day_ceiling: float = 0.50  # Used by balancer + scheduler
+    opus_ceiling: float = 0.40  # Used by balancer
+    plan_horizon_hours: float = 2.0  # Used by scheduler
+    estimated_window_capacity: int = 2_000_000  # Used by balancer, scheduler, decay
+    timezone: str = "US/Eastern"  # Used by scheduler + pattern
 
     # -----------------------------------------------------------------------
     # Cold start fallback (before pattern model has confidence)
     # -----------------------------------------------------------------------
-    cold_start_workers_peak: int = 2                # 9am-6pm weekdays
-    cold_start_workers_off: int = 4                 # evenings/weekends
+    cold_start_workers_peak: int = 2  # 9am-6pm weekdays
+    cold_start_workers_off: int = 4  # evenings/weekends
 
     # -----------------------------------------------------------------------
     # Discovery
@@ -78,9 +78,22 @@ class Settings(BaseSettings):
     )
     domain_keywords: list[str] = Field(
         default=[
-            "ai", "llm", "ml", "rag", "agent", "transformer",
-            "langchain", "embeddings", "vector", "nlp", "deep-learning",
-            "machine-learning", "neural", "gpt", "openai", "anthropic",
+            "ai",
+            "llm",
+            "ml",
+            "rag",
+            "agent",
+            "transformer",
+            "langchain",
+            "embeddings",
+            "vector",
+            "nlp",
+            "deep-learning",
+            "machine-learning",
+            "neural",
+            "gpt",
+            "openai",
+            "anthropic",
         ],
     )
     repo_min_stars: int = 200
@@ -98,11 +111,11 @@ class Settings(BaseSettings):
     # -----------------------------------------------------------------------
     # Pipeline — Claude call timeouts
     # -----------------------------------------------------------------------
-    implementation_timeout_sec: float = 600.0       # Call #1 (10 min — 180s caused 80% timeouts)
-    critic_timeout_sec: float = 120.0               # Call #2
-    pr_writer_timeout_sec: float = 60.0             # Call #3
-    feedback_reader_timeout_sec: float = 60.0       # Call #4
-    patch_applier_timeout_sec: float = 120.0        # Call #5
+    implementation_timeout_sec: float = 600.0  # Call #1 (10 min — 180s caused 80% timeouts)
+    critic_timeout_sec: float = 120.0  # Call #2
+    pr_writer_timeout_sec: float = 60.0  # Call #3
+    feedback_reader_timeout_sec: float = 60.0  # Call #4
+    patch_applier_timeout_sec: float = 120.0  # Call #5
 
     # -----------------------------------------------------------------------
     # Quality gates
@@ -116,7 +129,7 @@ class Settings(BaseSettings):
     # Iteration — used by iteration/patcher.py
     # -----------------------------------------------------------------------
     max_iteration_rounds: int = 3
-    max_iteration_growth: float = 1.2               # 120% of original size
+    max_iteration_growth: float = 1.2  # 120% of original size
 
     # -----------------------------------------------------------------------
     # Assignment
@@ -131,12 +144,12 @@ class Settings(BaseSettings):
     # -----------------------------------------------------------------------
     # Models — each used by the corresponding pipeline/iteration module
     # -----------------------------------------------------------------------
-    implementation_model: str = "sonnet"             # pipeline/implementer.py
-    critic_model: str = "opus"                       # pipeline/critic.py
-    critic_fallback_model: str = "sonnet"            # pipeline/critic.py (when prefer_sonnet)
-    pr_writer_model: str = "sonnet"                  # pipeline/pr_writer.py
-    feedback_reader_model: str = "sonnet"            # iteration/feedback.py
-    patch_applier_model: str = "sonnet"              # iteration/patcher.py
+    implementation_model: str = "sonnet"  # pipeline/implementer.py
+    critic_model: str = "opus"  # pipeline/critic.py
+    critic_fallback_model: str = "sonnet"  # pipeline/critic.py (when prefer_sonnet)
+    pr_writer_model: str = "sonnet"  # pipeline/pr_writer.py
+    feedback_reader_model: str = "sonnet"  # iteration/feedback.py
+    patch_applier_model: str = "sonnet"  # iteration/patcher.py
 
     # -----------------------------------------------------------------------
     # GitHub — used by pipeline/preflight, submitter, assignment, intel/duplicates
@@ -146,9 +159,9 @@ class Settings(BaseSettings):
     # -----------------------------------------------------------------------
     # Notifications
     # -----------------------------------------------------------------------
-    webhook_url: str = ""                           # Optional Discord/Slack webhook
-    alert_email: str = "zj77@drexel.edu"            # Email for critical alerts
-    email_webhook_url: str = ""                     # Webhook-to-email bridge URL (Zapier/IFTTT/Make)
+    webhook_url: str = ""  # Optional Discord/Slack webhook
+    alert_email: str = "zj77@drexel.edu"  # Email for critical alerts
+    email_webhook_url: str = ""  # Webhook-to-email bridge URL (Zapier/IFTTT/Make)
 
 
 settings = Settings()

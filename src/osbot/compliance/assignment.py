@@ -36,13 +36,15 @@ _ASSIGNMENT_PATTERNS: list[re.Pattern[str]] = [
 ]
 
 # Bot usernames that automate issue assignment.
-_ASSIGNMENT_BOT_USERNAMES: frozenset[str] = frozenset({
-    "github-actions",
-    "ossbot",
-    "issue-label-bot",
-    "todo-bot",
-    "allcontributors",
-})
+_ASSIGNMENT_BOT_USERNAMES: frozenset[str] = frozenset(
+    {
+        "github-actions",
+        "ossbot",
+        "issue-label-bot",
+        "todo-bot",
+        "allcontributors",
+    }
+)
 
 # Patterns in bot comments that indicate automated assignment.
 _BOT_ASSIGNMENT_PATTERNS: list[re.Pattern[str]] = [
@@ -93,9 +95,7 @@ async def requires_assignment(
     return False
 
 
-async def _check_contributing_docs(
-    owner: str, name: str, github: GitHubCLIProtocol
-) -> bool:
+async def _check_contributing_docs(owner: str, name: str, github: GitHubCLIProtocol) -> bool:
     """Fetch CONTRIBUTING.md and scan for assignment language."""
     for path in ("CONTRIBUTING.md", ".github/CONTRIBUTING.md", "CONTRIBUTING.rst"):
         result = await github.run_gh(
@@ -116,9 +116,7 @@ async def _check_contributing_docs(
     return False
 
 
-async def _check_issue_bot_activity(
-    owner: str, name: str, github: GitHubCLIProtocol
-) -> bool:
+async def _check_issue_bot_activity(owner: str, name: str, github: GitHubCLIProtocol) -> bool:
     """Check recent issues for assignment bot comments."""
     try:
         data = await github.graphql(
@@ -144,12 +142,7 @@ async def _check_issue_bot_activity(
         logger.debug("assignment_graphql_failed", owner=owner, repo=name)
         return False
 
-    issues = (
-        data.get("data", {})
-        .get("repository", {})
-        .get("issues", {})
-        .get("nodes", [])
-    )
+    issues = data.get("data", {}).get("repository", {}).get("issues", {}).get("nodes", [])
 
     for issue in issues:
         for comment in issue.get("comments", {}).get("nodes", []):

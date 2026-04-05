@@ -65,7 +65,17 @@ def score_issue(
     scope_adj = _compute_scope_adj(issue_data.get("repo", ""), state.get("scope_pass_rates", {}))
     age_adj = _compute_age_adj(issue_data.get("created_at", ""))
 
-    raw = base + repo_adj + label_adj + quality_adj + lesson_adj + benchmark_adj + implementability_adj + scope_adj + age_adj
+    raw = (
+        base
+        + repo_adj
+        + label_adj
+        + quality_adj
+        + lesson_adj
+        + benchmark_adj
+        + implementability_adj
+        + scope_adj
+        + age_adj
+    )
     score = max(1.0, min(10.0, raw))
     score = round(score, 2)
 
@@ -160,10 +170,7 @@ def _compute_label_adj(
         return 0.0
 
     label_set = {lbl.lower() for lbl in labels}
-    matching = [
-        o for o in outcomes
-        if label_set & {lbl.lower() for lbl in o.get("labels", [])}
-    ]
+    matching = [o for o in outcomes if label_set & {lbl.lower() for lbl in o.get("labels", [])}]
 
     if len(matching) < 2:
         # Need at least 2 outcomes for a label-level signal
@@ -230,8 +237,15 @@ def _compute_quality_adj(issue_data: dict[str, Any]) -> float:
 
     # "good first issue" label: repos specifically mark these as high-priority,
     # low-complexity tasks with well-defined scope. 70%+ merge rate in practice.
-    _GFI_LABELS = {"good first issue", "good-first-issue", "beginner", "starter",
-                   "first-timers-only", "first timers only", "newcomer"}
+    _GFI_LABELS = {
+        "good first issue",
+        "good-first-issue",
+        "beginner",
+        "starter",
+        "first-timers-only",
+        "first timers only",
+        "newcomer",
+    }
     if labels_lower & _GFI_LABELS:
         adj += 0.80
 
@@ -262,9 +276,7 @@ def _compute_lesson_adj(lessons: list[dict[str, Any]]) -> float:
         return 0.0
 
     negative_count = sum(
-        1 for lesson in lessons
-        if lesson.get("sentiment", "negative") == "negative"
-        or lesson.get("type") == "negative"
+        1 for lesson in lessons if lesson.get("sentiment", "negative") == "negative" or lesson.get("type") == "negative"
     )
 
     penalty = -0.75 * negative_count
@@ -330,11 +342,11 @@ def _compute_scope_adj(repo: str, scope_pass_rates: dict) -> float:
     if not scope_pass_rates or repo not in scope_pass_rates:
         return 0.0
     rate = scope_pass_rates[repo]
-    if rate < 0.05:   # < 5% scope pass rate -- consistently over-scoped
-        return -3.0   # Raised from -2.0: deprioritize much more aggressively
-    if rate < 0.15:   # < 15%
+    if rate < 0.05:  # < 5% scope pass rate -- consistently over-scoped
+        return -3.0  # Raised from -2.0: deprioritize much more aggressively
+    if rate < 0.15:  # < 15%
         return -1.0
-    if rate < 0.25:   # < 25%
+    if rate < 0.25:  # < 25%
         return -0.5
     return 0.0
 
@@ -361,10 +373,10 @@ def _compute_age_adj(created_at: str) -> float:
         return 0.0
 
     if age_days < 3:
-        return -0.5   # Too fresh: likely user error, duplicate, or unconfirmed
+        return -0.5  # Too fresh: likely user error, duplicate, or unconfirmed
     if age_days > 14:
-        return 0.5    # Mature issue: survived first-week noise, maintainer-aware
-    return 0.0        # 3-14 days: neutral
+        return 0.5  # Mature issue: survived first-week noise, maintainer-aware
+    return 0.0  # 3-14 days: neutral
 
 
 # ------------------------------------------------------------------
@@ -376,9 +388,16 @@ _FEATURE_LABELS = {"feature", "enhancement", "proposal", "rfc", "feature request
 
 # Title/body keywords that indicate investigation / research issues
 _INVESTIGATION_KW = {
-    "investigate", "research", "explore why", "understand why",
-    "analyze", "analysis", "figure out", "look into",
-    "deep dive", "root cause analysis",
+    "investigate",
+    "research",
+    "explore why",
+    "understand why",
+    "analyze",
+    "analysis",
+    "figure out",
+    "look into",
+    "deep dive",
+    "root cause analysis",
 }
 
 # Labels for discussion / question issues (penalty only if NOT also a bug)

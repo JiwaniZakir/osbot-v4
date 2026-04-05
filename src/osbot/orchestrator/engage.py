@@ -89,11 +89,17 @@ async def _has_own_comment(
     if not bot_login:
         return False
 
-    result = await github.run_gh([
-        "issue", "view", str(issue_number),
-        "--repo", repo,
-        "--json", "comments",
-    ])
+    result = await github.run_gh(
+        [
+            "issue",
+            "view",
+            str(issue_number),
+            "--repo",
+            repo,
+            "--json",
+            "comments",
+        ]
+    )
     if not result.success:
         return False
 
@@ -130,11 +136,7 @@ async def _pick_engagement_candidates(
     async with state._lock:
         queue_snapshot = list(state.issue_queue)
         open_pr_issues = {(pr.repo, pr.issue_number) for pr in state.open_prs}
-        active_issues = {
-            (w.repo, w.number)
-            for w in state.active_work.values()
-            if hasattr(w, "repo")
-        }
+        active_issues = {(w.repo, w.number) for w in state.active_work.values() if hasattr(w, "repo")}
 
     # Both sets use (repo, issue_number) tuples
     skip_issues = open_pr_issues | active_issues
@@ -157,7 +159,7 @@ async def _pick_engagement_candidates(
 
     # Sort by score descending, pick top candidates
     candidates.sort(key=lambda i: i.score, reverse=True)
-    return candidates[:_MAX_ENGAGEMENTS_PER_CYCLE * 3]  # extra candidates in case some fail
+    return candidates[: _MAX_ENGAGEMENTS_PER_CYCLE * 3]  # extra candidates in case some fail
 
 
 def _build_engage_prompt(repo: str, issue_title: str, issue_body: str, labels: list[str]) -> str:
@@ -300,11 +302,17 @@ async def run_engage_phase(
                 )
 
             # Post the comment
-            post_result = await github.run_gh([
-                "issue", "comment", str(issue.number),
-                "--repo", issue.repo,
-                "--body", comment_text,
-            ])
+            post_result = await github.run_gh(
+                [
+                    "issue",
+                    "comment",
+                    str(issue.number),
+                    "--repo",
+                    issue.repo,
+                    "--body",
+                    comment_text,
+                ]
+            )
 
             if post_result.success:
                 await _record_engagement(db, issue.repo, issue.number)

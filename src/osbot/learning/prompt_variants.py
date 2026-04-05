@@ -36,7 +36,7 @@ _FORBIDDEN_STRICT = (
     "- Do NOT reformat entire files or change whitespace outside your fix.\n"
     "- Do NOT introduce new abstractions, classes, or modules unless the fix requires it.\n"
     "- Do NOT add docstrings to unchanged code.\n"
-    "- Do NOT refactor surrounding code \"while you're at it.\"\n"
+    '- Do NOT refactor surrounding code "while you\'re at it."\n'
     "- Do NOT modify CI configuration, build files, or package manifests unless the issue specifically requires it.\n"
     "- Do NOT create new test files if an existing test file covers the same module -- add to the existing file.\n"
     "- Do NOT add downstream workarounds or monkey-patches when the root cause can be fixed directly.\n"
@@ -47,7 +47,7 @@ _FORBIDDEN_PERMISSIVE = (
     "- Do NOT touch files unrelated to the issue.\n"
     "- Do NOT add unnecessary imports.\n"
     "- Do NOT reformat entire files or change whitespace outside your fix.\n"
-    "- Do NOT refactor surrounding code \"while you're at it.\"\n"
+    '- Do NOT refactor surrounding code "while you\'re at it."\n'
     "- Do NOT modify CI configuration, build files, or package manifests unless the issue specifically requires it.\n"
     "- Do NOT add downstream workarounds or monkey-patches when the root cause can be fixed directly.\n"
     f"- Keep your total diff under {settings.max_diff_lines} lines and touch at most {settings.max_files_changed} files."
@@ -74,7 +74,7 @@ _TASK_ROOT_CAUSE_DEEP = (
     "through callers, constructors, and data transformations to find the EARLIEST "
     "point where the logic goes wrong. This is the root cause.\n"
     "3. Before writing any code, write a one-sentence hypothesis: "
-    "\"The root cause is in [file]:[function] because [reason].\"\n"
+    '"The root cause is in [file]:[function] because [reason]."\n'
     "4. Fix ONLY the root cause. Do not patch symptoms downstream.\n"
     "5. Implement the MINIMAL fix that resolves the issue.\n"
     "6. If the repo has tests, add or update a test that covers your fix.\n"

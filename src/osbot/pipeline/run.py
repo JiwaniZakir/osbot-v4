@@ -101,9 +101,16 @@ async def run_pipeline(
         ok, reason, preflight_meta = await preflight(issue, db, github)
         if not ok:
             return await _finalize(
-                issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
-                failure_reason=reason, failure_phase="preflight",
-                checkpoints=checkpoints, variant_info=variant_info,
+                issue,
+                db,
+                Outcome.REJECTED,
+                start,
+                tokens_total,
+                claude_calls,
+                failure_reason=reason,
+                failure_phase="preflight",
+                checkpoints=checkpoints,
+                variant_info=variant_info,
             )
 
         checkpoints["preflight_passed"] = True
@@ -118,24 +125,42 @@ async def run_pipeline(
                 claimed = await request_assignment(issue, github, db)
                 if not claimed:
                     return await _finalize(
-                        issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+                        issue,
+                        db,
+                        Outcome.REJECTED,
+                        start,
+                        tokens_total,
+                        claude_calls,
                         failure_reason="failed to post claim comment",
                         failure_phase="assignment",
-                        checkpoints=checkpoints, variant_info=variant_info,
+                        checkpoints=checkpoints,
+                        variant_info=variant_info,
                     )
                 # Return a special "not done yet" result
                 return await _finalize(
-                    issue, db, Outcome.STUCK, start, tokens_total, claude_calls,
+                    issue,
+                    db,
+                    Outcome.STUCK,
+                    start,
+                    tokens_total,
+                    claude_calls,
                     failure_reason="awaiting_assignment",
                     failure_phase="assignment",
-                    checkpoints=checkpoints, variant_info=variant_info,
+                    checkpoints=checkpoints,
+                    variant_info=variant_info,
                 )
             if status == REJECTED:
                 return await _finalize(
-                    issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+                    issue,
+                    db,
+                    Outcome.REJECTED,
+                    start,
+                    tokens_total,
+                    claude_calls,
                     failure_reason="assignment rejected or timed out",
                     failure_phase="assignment",
-                    checkpoints=checkpoints, variant_info=variant_info,
+                    checkpoints=checkpoints,
+                    variant_info=variant_info,
                 )
 
         # ---------------------------------------------------------------
@@ -144,10 +169,16 @@ async def run_pipeline(
         workspace = await _setup_workspace(issue, github)
         if workspace is None:
             return await _finalize(
-                issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+                issue,
+                db,
+                Outcome.REJECTED,
+                start,
+                tokens_total,
+                claude_calls,
                 failure_reason="workspace setup failed (clone error)",
                 failure_phase="workspace",
-                checkpoints=checkpoints, variant_info=variant_info,
+                checkpoints=checkpoints,
+                variant_info=variant_info,
             )
 
         # ---------------------------------------------------------------
@@ -158,6 +189,7 @@ async def run_pipeline(
         scope_hint = ""
         try:
             from osbot.pipeline.scoper import get_scope_hint
+
             scope_hint = await get_scope_hint(issue, gateway)
             claude_calls += 1
         except Exception:
@@ -166,8 +198,7 @@ async def run_pipeline(
         # ---------------------------------------------------------------
         # 4. Implement (Claude call #1)
         # ---------------------------------------------------------------
-        impl_result, variant_info = await implement(issue, workspace, gateway, db,
-                                                     scope_hint=scope_hint)
+        impl_result, variant_info = await implement(issue, workspace, gateway, db, scope_hint=scope_hint)
         tokens_total += impl_result.tokens_used
         claude_calls += 1
 
@@ -177,9 +208,16 @@ async def run_pipeline(
             # still have produced a diff -- check before giving up.
             if impl_result.error == "timeout":
                 return await _finalize(
-                    issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
-                    failure_reason="timeout", failure_phase="implement",
-                    checkpoints=checkpoints, variant_info=variant_info,
+                    issue,
+                    db,
+                    Outcome.REJECTED,
+                    start,
+                    tokens_total,
+                    claude_calls,
+                    failure_reason="timeout",
+                    failure_phase="implement",
+                    checkpoints=checkpoints,
+                    variant_info=variant_info,
                 )
             # Non-timeout failure: attempt to salvage by checking the diff.
             # If there's no diff either, _finalize below will catch it.
@@ -206,10 +244,16 @@ async def run_pipeline(
         if not gate_result.passed:
             reason = "; ".join(gate_result.failures)
             return await _finalize(
-                issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+                issue,
+                db,
+                Outcome.REJECTED,
+                start,
+                tokens_total,
+                claude_calls,
                 failure_reason=f"quality gates: {reason}",
                 failure_phase="quality_gates",
-                checkpoints=checkpoints, variant_info=variant_info,
+                checkpoints=checkpoints,
+                variant_info=variant_info,
             )
 
         # Get the diff for critic and PR writer
@@ -237,10 +281,16 @@ async def run_pipeline(
                     f"than a minimal fix allows."
                 )
             return await _finalize(
-                issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+                issue,
+                db,
+                Outcome.REJECTED,
+                start,
+                tokens_total,
+                claude_calls,
                 failure_reason=empty_reason,
                 failure_phase="quality_gates",
-                checkpoints=checkpoints, variant_info=variant_info,
+                checkpoints=checkpoints,
+                variant_info=variant_info,
             )
 
         # ---------------------------------------------------------------
@@ -249,18 +299,12 @@ async def run_pipeline(
         # spending critic tokens — the critic would reject anyway.
         # ---------------------------------------------------------------
         diff_files = {
-            line[4:].split("\t")[0]
-            for line in diff.splitlines()
-            if line.startswith("--- ") or line.startswith("+++ ")
+            line[4:].split("\t")[0] for line in diff.splitlines() if line.startswith("--- ") or line.startswith("+++ ")
         }
         # Remove /dev/null (new/deleted files show up as this in unified diffs)
         diff_files.discard("/dev/null")
         # Strip the a/ and b/ prefixes git adds
-        actual_files = {
-            f.lstrip("ab/").split(" ")[0]
-            for f in diff_files
-            if f not in ("/dev/null",)
-        }
+        actual_files = {f.lstrip("ab/").split(" ")[0] for f in diff_files if f not in ("/dev/null",)}
         changed_file_count = len(actual_files) // 2 if actual_files else 0  # --- and +++ per file
 
         if changed_file_count > settings.max_files_changed:
@@ -280,20 +324,32 @@ async def run_pipeline(
             _real_reflexion_done = False
             try:
                 from osbot.learning.lessons import generate_real_reflection
+
                 await generate_real_reflection(
-                    repo=issue.repo, issue_number=issue.number,
-                    title=issue.title, labels=list(issue.labels),
-                    failure_phase="quality_gates", failure_reason=scope_reason,
-                    diff=diff, gateway=gateway, db=db,
+                    repo=issue.repo,
+                    issue_number=issue.number,
+                    title=issue.title,
+                    labels=list(issue.labels),
+                    failure_phase="quality_gates",
+                    failure_reason=scope_reason,
+                    diff=diff,
+                    gateway=gateway,
+                    db=db,
                 )
                 _real_reflexion_done = True
             except Exception:
                 pass  # Reflexion is non-critical
             return await _finalize(
-                issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+                issue,
+                db,
+                Outcome.REJECTED,
+                start,
+                tokens_total,
+                claude_calls,
                 failure_reason=scope_reason,
                 failure_phase="quality_gates",
-                checkpoints=checkpoints, variant_info=variant_info,
+                checkpoints=checkpoints,
+                variant_info=variant_info,
                 reflection_done=_real_reflexion_done,
             )
         checkpoints["scope_correct"] = True
@@ -311,7 +367,10 @@ async def run_pipeline(
         # AND we haven't already downscoped, retry with downscope_mode=True.
         # Max 1 downscope retry. Do NOT downscope on correctness rejections.
         critic_result = await review(
-            issue, diff, impl_result.tool_trace, gateway,
+            issue,
+            diff,
+            impl_result.tool_trace,
+            gateway,
             prefer_sonnet=balancer.should_prefer_sonnet,
         )
         claude_calls += 1
@@ -319,12 +378,10 @@ async def run_pipeline(
         if critic_result.verdict == CriticVerdict.REJECT:
             # Classify the rejection
             has_correctness_issue = any(
-                "correct" in i.lower() or "bug" in i.lower() or "wrong" in i.lower()
-                for i in critic_result.issues
+                "correct" in i.lower() or "bug" in i.lower() or "wrong" in i.lower() for i in critic_result.issues
             )
             has_scope_issue = any(
-                "scope" in i.lower() or "complex" in i.lower()
-                or "too many" in i.lower() or "too large" in i.lower()
+                "scope" in i.lower() or "complex" in i.lower() or "too many" in i.lower() or "too large" in i.lower()
                 for i in critic_result.issues
             )
 
@@ -351,7 +408,10 @@ async def run_pipeline(
                     used_downscope = True
                     variant_info["downscoped"] = "True"
                     retry_result, _ = await implement(
-                        issue, workspace, gateway, db,
+                        issue,
+                        workspace,
+                        gateway,
+                        db,
                         extra_context=(
                             f"Previous attempt was rejected for scope/complexity: "
                             f"{critic_result.reasoning}. "
@@ -369,7 +429,10 @@ async def run_pipeline(
                     )
                     # Standard soft retry with critic feedback
                     retry_result, _ = await implement(
-                        issue, workspace, gateway, db,
+                        issue,
+                        workspace,
+                        gateway,
+                        db,
                         extra_context=(
                             f"Previous attempt was rejected: {critic_result.reasoning}. "
                             f"Issues: {'; '.join(critic_result.issues)}. "
@@ -388,7 +451,10 @@ async def run_pipeline(
                         diff_result = await github.run_git(["diff", "HEAD~1"], cwd=workspace)
                         diff = diff_result.stdout if diff_result.success else ""
                         critic_result = await review(
-                            issue, diff, retry_result.tool_trace, gateway,
+                            issue,
+                            diff,
+                            retry_result.tool_trace,
+                            gateway,
                             prefer_sonnet=balancer.should_prefer_sonnet,
                         )
                         claude_calls += 1
@@ -402,20 +468,32 @@ async def run_pipeline(
                 _real_reflexion_done = False
                 try:
                     from osbot.learning.lessons import generate_real_reflection
+
                     await generate_real_reflection(
-                        repo=issue.repo, issue_number=issue.number,
-                        title=issue.title, labels=list(issue.labels),
-                        failure_phase="critic", failure_reason=critic_result.reasoning,
-                        diff=diff, gateway=gateway, db=db,
+                        repo=issue.repo,
+                        issue_number=issue.number,
+                        title=issue.title,
+                        labels=list(issue.labels),
+                        failure_phase="critic",
+                        failure_reason=critic_result.reasoning,
+                        diff=diff,
+                        gateway=gateway,
+                        db=db,
                     )
                     _real_reflexion_done = True
                 except Exception:
                     pass  # Reflexion is non-critical
                 return await _finalize(
-                    issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+                    issue,
+                    db,
+                    Outcome.REJECTED,
+                    start,
+                    tokens_total,
+                    claude_calls,
                     failure_reason=f"critic rejected: {critic_result.reasoning}",
                     failure_phase="critic",
-                    checkpoints=checkpoints, variant_info=variant_info,
+                    checkpoints=checkpoints,
+                    variant_info=variant_info,
                     reflection_done=_real_reflexion_done,
                 )
 
@@ -426,7 +504,11 @@ async def run_pipeline(
         # 7. PR description (Claude call #3)
         # ---------------------------------------------------------------
         pr_body = await write_pr(
-            issue, diff, gateway, github=github, db=db,
+            issue,
+            diff,
+            gateway,
+            github=github,
+            db=db,
             downscoped=used_downscope,
         )
         claude_calls += 1
@@ -438,10 +520,16 @@ async def run_pipeline(
             pr_url, pr_number = await submit(issue, workspace, pr_body, github)
         except RuntimeError as exc:
             return await _finalize(
-                issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+                issue,
+                db,
+                Outcome.REJECTED,
+                start,
+                tokens_total,
+                claude_calls,
                 failure_reason=f"submit failed: {exc}",
                 failure_phase="submit",
-                checkpoints=checkpoints, variant_info=variant_info,
+                checkpoints=checkpoints,
+                variant_info=variant_info,
             )
 
         checkpoints["pr_submitted"] = True
@@ -449,9 +537,9 @@ async def run_pipeline(
         # Skill library: record this successful diff for future few-shot injection
         try:
             from osbot.learning.skill_library import record_skill
+
             language = getattr(issue, "language", "") or ""
-            await record_skill(issue.repo, issue.number, issue.title,
-                               list(issue.labels), language, diff, db)
+            await record_skill(issue.repo, issue.number, issue.title, list(issue.labels), language, diff, db)
         except Exception:
             pass  # Skill recording is non-critical
 
@@ -461,6 +549,7 @@ async def run_pipeline(
         if preflight_meta.needs_cla_signing and pr_number:
             try:
                 from osbot.comms.email import send_email
+
                 effective_pr_url = pr_url or f"https://github.com/{issue.repo}/pull/{pr_number}"
                 await send_email(
                     to=settings.alert_email,
@@ -486,9 +575,16 @@ async def run_pipeline(
                 logger.warning("cla_notification_failed", error=str(exc))
 
         return await _finalize(
-            issue, db, Outcome.SUBMITTED, start, tokens_total, claude_calls,
-            pr_url=pr_url, pr_number=pr_number,
-            checkpoints=checkpoints, variant_info=variant_info,
+            issue,
+            db,
+            Outcome.SUBMITTED,
+            start,
+            tokens_total,
+            claude_calls,
+            pr_url=pr_url,
+            pr_number=pr_number,
+            checkpoints=checkpoints,
+            variant_info=variant_info,
         )
 
     except Exception as exc:
@@ -500,10 +596,16 @@ async def run_pipeline(
             exc_info=True,
         )
         return await _finalize(
-            issue, db, Outcome.REJECTED, start, tokens_total, claude_calls,
+            issue,
+            db,
+            Outcome.REJECTED,
+            start,
+            tokens_total,
+            claude_calls,
             failure_reason=f"unexpected error: {exc}",
             failure_phase="pipeline",
-            checkpoints=checkpoints, variant_info=variant_info,
+            checkpoints=checkpoints,
+            variant_info=variant_info,
         )
 
     finally:
@@ -530,11 +632,14 @@ async def _setup_workspace(
     )
 
     # Clone the repo
-    clone_result = await github.run_git([
-        "clone", "--depth=1",
-        f"https://github.com/{issue.repo}.git",
-        workspace,
-    ])
+    clone_result = await github.run_git(
+        [
+            "clone",
+            "--depth=1",
+            f"https://github.com/{issue.repo}.git",
+            workspace,
+        ]
+    )
 
     if not clone_result.success:
         logger.warning(
@@ -547,9 +652,7 @@ async def _setup_workspace(
 
     # Create feature branch
     branch_name = f"fix/{issue.number}"
-    branch_result = await github.run_git(
-        ["checkout", "-b", branch_name], cwd=workspace
-    )
+    branch_result = await github.run_git(["checkout", "-b", branch_name], cwd=workspace)
 
     if not branch_result.success:
         logger.warning(

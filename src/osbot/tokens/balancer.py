@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 logger = get_logger("tokens.balancer")
 
 _HEADROOM_EMERGENCY = 0.05  # 5% -> force 1 worker
-_HEADROOM_GENEROUS = 0.40   # 40% -> allow +1 worker
+_HEADROOM_GENEROUS = 0.40  # 40% -> allow +1 worker
 
 
 class Balancer:
@@ -112,20 +112,18 @@ class Balancer:
             if fresh is not None:
                 snapshot = fresh
                 self._consecutive_probe_failures = 0
-                logger.info("balancer_probe_ok",
-                            five_hour=round(fresh.five_hour, 3),
-                            seven_day=round(fresh.seven_day, 3))
+                logger.info(
+                    "balancer_probe_ok", five_hour=round(fresh.five_hour, 3), seven_day=round(fresh.seven_day, 3)
+                )
             else:
                 self._consecutive_probe_failures += 1
-                logger.warning("balancer_probe_failed",
-                               consecutive_failures=self._consecutive_probe_failures)
+                logger.warning("balancer_probe_failed", consecutive_failures=self._consecutive_probe_failures)
 
         if snapshot is None:
             # Never got any probe data — use schedule-only mode
             plan = await self._scheduler.plan_without_probe()
             self._workers = plan.workers
-            logger.info("balancer_schedule_only",
-                        workers=plan.workers, reason=plan.reason)
+            logger.info("balancer_schedule_only", workers=plan.workers, reason=plan.reason)
             return
 
         # Persist snapshot
@@ -133,9 +131,7 @@ class Balancer:
 
         # L3: Decompose (requires a previous snapshot)
         if self._last_snapshot is not None:
-            delta = await self._decomposer.decompose(
-                self._last_snapshot, snapshot, settings.estimated_window_capacity
-            )
+            delta = await self._decomposer.decompose(self._last_snapshot, snapshot, settings.estimated_window_capacity)
             # L4: Update pattern model
             await self._pattern.record(delta)
 

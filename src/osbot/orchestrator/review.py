@@ -87,11 +87,14 @@ async def _has_own_review(
         return False
 
     # Check PR review comments (posted via `gh pr review --comment`)
-    result = await github.run_gh([
-        "api",
-        f"repos/{repo}/pulls/{pr_number}/reviews",
-        "--method", "GET",
-    ])
+    result = await github.run_gh(
+        [
+            "api",
+            f"repos/{repo}/pulls/{pr_number}/reviews",
+            "--method",
+            "GET",
+        ]
+    )
     if not result.success:
         return False
 
@@ -137,13 +140,20 @@ async def _find_candidate_prs(
         repo = row["repo"]
         repos_checked += 1
 
-        result = await github.run_gh([
-            "pr", "list",
-            "--repo", repo,
-            "--state", "open",
-            "--limit", "5",
-            "--json", "number,title,author",
-        ])
+        result = await github.run_gh(
+            [
+                "pr",
+                "list",
+                "--repo",
+                repo,
+                "--state",
+                "open",
+                "--limit",
+                "5",
+                "--json",
+                "number,title,author",
+            ]
+        )
         if not result.success:
             continue
 
@@ -166,11 +176,13 @@ async def _find_candidate_prs(
             if await _is_already_reviewed(db, repo, pr_number):
                 continue
 
-            candidates.append({
-                "repo": repo,
-                "number": pr_number,
-                "title": pr.get("title", ""),
-            })
+            candidates.append(
+                {
+                    "repo": repo,
+                    "number": pr_number,
+                    "title": pr.get("title", ""),
+                }
+            )
 
         if len(candidates) >= _MAX_REVIEWS_PER_CYCLE * 2:
             break
@@ -180,10 +192,15 @@ async def _find_candidate_prs(
 
 async def _get_pr_diff(github: GitHubCLIProtocol, repo: str, pr_number: int) -> str:
     """Fetch the diff for a PR, truncated to a reasonable size."""
-    result = await github.run_gh([
-        "pr", "diff", str(pr_number),
-        "--repo", repo,
-    ])
+    result = await github.run_gh(
+        [
+            "pr",
+            "diff",
+            str(pr_number),
+            "--repo",
+            repo,
+        ]
+    )
     if not result.success:
         return ""
     diff = result.stdout
@@ -205,7 +222,7 @@ def _build_review_prompt(repo: str, pr_title: str, diff: str) -> str:
         f"a missing test scenario, an optimization, or something done well\n"
         f"- Be constructive and specific, not generic praise\n"
         f"- Do NOT use any of these phrases: 'Great job', 'Looks good to me', "
-        f"'LGTM', 'Nice work', 'I\'d be happy to', 'Great catch'\n"
+        f"'LGTM', 'Nice work', 'I'd be happy to', 'Great catch'\n"
         f"- Do NOT start with greetings or praise\n"
         f"- Do NOT offer to help further or add closing pleasantries\n"
         f"- Write as a peer developer giving a careful review\n"
@@ -318,12 +335,18 @@ async def run_review_phase(
                 )
 
             # Post the review
-            post_result = await github.run_gh([
-                "pr", "review", str(pr_number),
-                "--repo", repo,
-                "--comment",
-                "--body", review_text,
-            ])
+            post_result = await github.run_gh(
+                [
+                    "pr",
+                    "review",
+                    str(pr_number),
+                    "--repo",
+                    repo,
+                    "--comment",
+                    "--body",
+                    review_text,
+                ]
+            )
 
             if post_result.success:
                 await _record_review(db, repo, pr_number)

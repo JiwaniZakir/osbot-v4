@@ -82,16 +82,19 @@ async def request_assignment(
 
     Returns True if the comment was posted successfully.
     """
-    comment_body = (
-        "I'd like to work on this issue. "
-        "I've looked at the codebase and believe I can provide a fix."
-    )
+    comment_body = "I'd like to work on this issue. I've looked at the codebase and believe I can provide a fix."
 
-    result = await github.run_gh([
-        "issue", "comment", str(issue.number),
-        "--repo", issue.repo,
-        "--body", comment_body,
-    ])
+    result = await github.run_gh(
+        [
+            "issue",
+            "comment",
+            str(issue.number),
+            "--repo",
+            issue.repo,
+            "--body",
+            comment_body,
+        ]
+    )
 
     if not result.success:
         logger.warning(
@@ -132,11 +135,17 @@ async def poll_assignment(
         # Can't check assignment without knowing our username
         return READY
 
-    result = await github.run_gh([
-        "issue", "view", str(issue.number),
-        "--repo", issue.repo,
-        "--json", "assignees",
-    ])
+    result = await github.run_gh(
+        [
+            "issue",
+            "view",
+            str(issue.number),
+            "--repo",
+            issue.repo,
+            "--json",
+            "assignees",
+        ]
+    )
 
     if not result.success:
         return AWAITING

@@ -78,9 +78,13 @@ async def check_prs(
         if update is not None:
             updates.append(update)
             logger.info(
-                "pr_activity_detected", repo=pr.repo, pr=pr.pr_number,
-                comments=len(update.new_comments), reviews=len(update.new_reviews),
-                ci=update.ci_status, merged=update.is_merged,
+                "pr_activity_detected",
+                repo=pr.repo,
+                pr=pr.pr_number,
+                comments=len(update.new_comments),
+                reviews=len(update.new_reviews),
+                ci=update.ci_status,
+                merged=update.is_merged,
             )
     return updates
 
@@ -92,7 +96,8 @@ async def _poll_single_pr(pr: OpenPR, github: GitHubCLIProtocol) -> PRUpdate | N
 
     try:
         data = await github.graphql(
-            _PR_QUERY, variables={"owner": owner, "repo": name, "number": int(pr.pr_number)},
+            _PR_QUERY,
+            variables={"owner": owner, "repo": name, "number": int(pr.pr_number)},
         )
     except RuntimeError as exc:
         logger.warning("pr_graphql_failed", repo=pr.repo, pr=pr.pr_number, error=str(exc))
@@ -110,35 +115,26 @@ async def _poll_single_pr(pr: OpenPR, github: GitHubCLIProtocol) -> PRUpdate | N
     bot_login = settings.github_username.lower()
     if bot_login:
         new_comments = [
-            c for c in pr_data.get("comments", {}).get("nodes", [])
-            if c.get("createdAt", "") > since
-            and (c.get("author") or {}).get("login", "").lower() != bot_login
+            c
+            for c in pr_data.get("comments", {}).get("nodes", [])
+            if c.get("createdAt", "") > since and (c.get("author") or {}).get("login", "").lower() != bot_login
         ]
         new_reviews = [
-            r for r in pr_data.get("reviews", {}).get("nodes", [])
-            if r.get("createdAt", "") > since
-            and (r.get("author") or {}).get("login", "").lower() != bot_login
+            r
+            for r in pr_data.get("reviews", {}).get("nodes", [])
+            if r.get("createdAt", "") > since and (r.get("author") or {}).get("login", "").lower() != bot_login
         ]
         # Also strip bot's own inline comments nested inside reviews.
         for r in new_reviews:
             nodes = r.get("comments", {}).get("nodes", [])
             if nodes:
                 r["comments"] = {
-                    "nodes": [
-                        c for c in nodes
-                        if (c.get("author") or {}).get("login", "").lower() != bot_login
-                    ],
+                    "nodes": [c for c in nodes if (c.get("author") or {}).get("login", "").lower() != bot_login],
                 }
     else:
         # No username configured -- don't filter anything.
-        new_comments = [
-            c for c in pr_data.get("comments", {}).get("nodes", [])
-            if c.get("createdAt", "") > since
-        ]
-        new_reviews = [
-            r for r in pr_data.get("reviews", {}).get("nodes", [])
-            if r.get("createdAt", "") > since
-        ]
+        new_comments = [c for c in pr_data.get("comments", {}).get("nodes", []) if c.get("createdAt", "") > since]
+        new_reviews = [r for r in pr_data.get("reviews", {}).get("nodes", []) if r.get("createdAt", "") > since]
 
     # CI status from latest commit.
     ci_status = ""
@@ -147,16 +143,21 @@ async def _poll_single_pr(pr: OpenPR, github: GitHubCLIProtocol) -> PRUpdate | N
         rollup = commits[0].get("commit", {}).get("statusCheckRollup")
         if rollup:
             state = rollup.get("state", "").upper()
-            ci_status = {"SUCCESS": "success", "FAILURE": "failure", "ERROR": "failure",
-                         "PENDING": "pending"}.get(state, "")
+            ci_status = {"SUCCESS": "success", "FAILURE": "failure", "ERROR": "failure", "PENDING": "pending"}.get(
+                state, ""
+            )
 
-    has_new = bool(new_comments or new_reviews or is_merged or is_closed
-                   or has_conflicts or ci_status == "failure")
+    has_new = bool(new_comments or new_reviews or is_merged or is_closed or has_conflicts or ci_status == "failure")
     if not has_new:
         return None
 
     return PRUpdate(
-        pr=pr, new_comments=new_comments, new_reviews=new_reviews,
-        ci_status=ci_status, is_merged=is_merged, is_closed=is_closed,
-        has_conflicts=has_conflicts, has_new_feedback=bool(new_comments or new_reviews),
+        pr=pr,
+        new_comments=new_comments,
+        new_reviews=new_reviews,
+        ci_status=ci_status,
+        is_merged=is_merged,
+        is_closed=is_closed,
+        has_conflicts=has_conflicts,
+        has_new_feedback=bool(new_comments or new_reviews),
     )

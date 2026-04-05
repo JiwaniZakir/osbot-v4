@@ -3,4 +3,7 @@
 from osbot.gateway.claude import ClaudeGateway
 from osbot.gateway.github import GitHubCLI
 
-__all__ = ["ClaudeGateway", "GitHubCLI", ]
+__all__ = [
+    "ClaudeGateway",
+    "GitHubCLI",
+]

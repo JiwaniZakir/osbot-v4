@@ -75,9 +75,7 @@ async def test_maintainer_confirmed_adds_1_5(sample_repo: RepoMeta) -> None:
 async def test_lesson_penalty_caps_at_minus_3() -> None:
     """Negative lessons should cap at -3.0 total penalty."""
     # 5 negative lessons * -0.75 = -3.75, but capped at -3.0
-    lessons = [
-        {"sentiment": "negative", "value": f"lesson {i}"} for i in range(5)
-    ]
+    lessons = [{"sentiment": "negative", "value": f"lesson {i}"} for i in range(5)]
     adj = _compute_lesson_adj(lessons)
     assert adj == -3.0
 

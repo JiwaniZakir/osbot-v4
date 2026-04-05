@@ -51,9 +51,7 @@ class MockGateway:
     All calls are recorded in ``calls``.
     """
 
-    response: AgentResult = field(
-        default_factory=lambda: AgentResult(success=True, text="ok", tokens_used=100)
-    )
+    response: AgentResult = field(default_factory=lambda: AgentResult(success=True, text="ok", tokens_used=100))
     calls: list[dict[str, Any]] = field(default_factory=list)
 
     async def invoke(
@@ -100,12 +98,8 @@ class MockGitHub:
     Set ``gh_response`` / ``git_response`` before calling.
     """
 
-    gh_response: CLIResult = field(
-        default_factory=lambda: CLIResult(returncode=0, stdout="{}", stderr="")
-    )
-    git_response: CLIResult = field(
-        default_factory=lambda: CLIResult(returncode=0, stdout="", stderr="")
-    )
+    gh_response: CLIResult = field(default_factory=lambda: CLIResult(returncode=0, stdout="{}", stderr=""))
+    git_response: CLIResult = field(default_factory=lambda: CLIResult(returncode=0, stdout="", stderr=""))
     calls: list[dict[str, Any]] = field(default_factory=list)
 
     async def run_gh(self, args: list[str], cwd: str | None = None) -> CLIResult:
@@ -116,9 +110,7 @@ class MockGitHub:
         self.calls.append({"type": "git", "args": args, "cwd": cwd})
         return self.git_response
 
-    async def graphql(
-        self, query: str, variables: dict[str, Any] | None = None
-    ) -> dict[str, Any]:
+    async def graphql(self, query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
         self.calls.append({"type": "graphql", "query": query, "variables": variables})
         return {}
 

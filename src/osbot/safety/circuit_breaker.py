@@ -175,10 +175,7 @@ async def record_failure(
         )
         same_error_count = max(
             same_error_count,
-            sum(
-                1 for row in category_rows
-                if _error_category(row.get("failure_reason", "")) == category
-            ),
+            sum(1 for row in category_rows if _error_category(row.get("failure_reason", "")) == category),
         )
 
     if same_error_count >= SAME_ERROR_THRESHOLD:
@@ -212,10 +209,7 @@ async def record_failure(
     )
 
     if len(recent_rows) >= CONSECUTIVE_FAILURE_THRESHOLD:
-        all_failed = all(
-            row.get("outcome") not in ("merged", "iterated_merged")
-            for row in recent_rows
-        )
+        all_failed = all(row.get("outcome") not in ("merged", "iterated_merged") for row in recent_rows)
         if all_failed:
             logger.warning(
                 "circuit_breaker_trip",

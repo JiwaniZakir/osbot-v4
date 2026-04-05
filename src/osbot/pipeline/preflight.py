@@ -44,26 +44,62 @@ class PreflightMeta:
 
 
 _QUESTION_TITLE_PREFIXES = (
-    "how do ", "how to ", "how can ", "how should ",
-    "why does ", "why is ", "why are ", "why can ",
-    "what is ", "what are ", "what does ", "what should ",
-    "is it possible", "is there a way", "is there any",
-    "can you ", "can we ", "can someone ", "can anyone ",
-    "could you ", "could we ", "could someone ",
-    "should we ", "should i ", "would it be ",
-    "looking for help", "need help with", "seeking help",
-    "question:", "help:", "[question]", "[discussion]", "[rfc]",
+    "how do ",
+    "how to ",
+    "how can ",
+    "how should ",
+    "why does ",
+    "why is ",
+    "why are ",
+    "why can ",
+    "what is ",
+    "what are ",
+    "what does ",
+    "what should ",
+    "is it possible",
+    "is there a way",
+    "is there any",
+    "can you ",
+    "can we ",
+    "can someone ",
+    "can anyone ",
+    "could you ",
+    "could we ",
+    "could someone ",
+    "should we ",
+    "should i ",
+    "would it be ",
+    "looking for help",
+    "need help with",
+    "seeking help",
+    "question:",
+    "help:",
+    "[question]",
+    "[discussion]",
+    "[rfc]",
 )
 
 _QUESTION_LABELS = frozenset({"question", "discussion", "invalid", "support", "wontfix", "won't fix"})
 
 # Labels that explicitly signal the issue is blocked or won't be accepted.
 # A PR fixing a "blocked" or "duplicate" issue will almost certainly be rejected.
-_BLOCKED_LABELS = frozenset({
-    "blocked", "on hold", "on-hold", "waiting", "waiting for feedback",
-    "duplicate", "wontfix", "won't fix", "by design", "as designed",
-    "intentional", "not a bug", "not-a-bug",
-})
+_BLOCKED_LABELS = frozenset(
+    {
+        "blocked",
+        "on hold",
+        "on-hold",
+        "waiting",
+        "waiting for feedback",
+        "duplicate",
+        "wontfix",
+        "won't fix",
+        "by design",
+        "as designed",
+        "intentional",
+        "not a bug",
+        "not-a-bug",
+    }
+)
 
 
 def _is_non_actionable(issue: ScoredIssue) -> bool:
@@ -156,8 +192,10 @@ async def preflight(
             # Outcome is old enough — allow retry (log so we can see it)
             logger.info(
                 "prior_outcome_expired",
-                repo=repo, issue=issue.number,
-                prev_outcome=prev_outcome, age_days=age_days,
+                repo=repo,
+                issue=issue.number,
+                prev_outcome=prev_outcome,
+                age_days=age_days,
             )
 
     # 4. No duplicate PR (check if we already have an open PR for this issue)
@@ -217,8 +255,7 @@ async def preflight(
             created = datetime.fromisoformat(issue.created_at.replace("Z", "+00:00"))
             age_hours = (datetime.now(UTC) - created).total_seconds() / 3600
             labels_lower = {lb.lower() for lb in (issue.labels or [])}
-            is_trivial = bool(labels_lower & {"typo", "documentation", "docs", "spelling",
-                                              "cleanup", "chore"})
+            is_trivial = bool(labels_lower & {"typo", "documentation", "docs", "spelling", "cleanup", "chore"})
             if age_hours < 1.0 and not is_trivial:
                 logger.warning(
                     "preflight_fresh_issue_warning",
@@ -250,14 +287,22 @@ async def _check_duplicate_pr(
 
     # Check ALL PRs (any author, any state) that reference this issue
     for state in ("open", "merged"):
-        result = await github.run_gh([
-            "pr", "list",
-            "--repo", issue.repo,
-            "--state", state,
-            "--search", f"in:body {issue_ref}",
-            "--json", "number,title,body,author",
-            "--limit", "10",
-        ])
+        result = await github.run_gh(
+            [
+                "pr",
+                "list",
+                "--repo",
+                issue.repo,
+                "--state",
+                state,
+                "--search",
+                f"in:body {issue_ref}",
+                "--json",
+                "number,title,body,author",
+                "--limit",
+                "10",
+            ]
+        )
         if not result.success:
             continue
 
@@ -296,11 +341,17 @@ async def _check_issue_claimed(
     This catches competing contributors that the timeline-based duplicate
     check would miss.
     """
-    result = await github.run_gh([
-        "issue", "view", str(issue.number),
-        "--repo", issue.repo,
-        "--json", "comments",
-    ])
+    result = await github.run_gh(
+        [
+            "issue",
+            "view",
+            str(issue.number),
+            "--repo",
+            issue.repo,
+            "--json",
+            "comments",
+        ]
+    )
     if not result.success:
         # Can't check -- allow through (fail-open for non-critical gate)
         return True, ""
@@ -326,11 +377,17 @@ async def _check_issue_open(
     github: GitHubCLIProtocol,
 ) -> tuple[bool, str]:
     """Verify the issue is still open via gh CLI."""
-    result = await github.run_gh([
-        "issue", "view", str(issue.number),
-        "--repo", issue.repo,
-        "--json", "state",
-    ])
+    result = await github.run_gh(
+        [
+            "issue",
+            "view",
+            str(issue.number),
+            "--repo",
+            issue.repo,
+            "--json",
+            "state",
+        ]
+    )
     if not result.success:
         # Can't verify -- allow through
         return True, ""
@@ -367,10 +424,14 @@ async def _check_maintainer_active(
     github: GitHubCLIProtocol,
 ) -> tuple[bool, str]:
     """Check if the repo had a push within the configured threshold."""
-    result = await github.run_gh([
-        "api", f"repos/{issue.repo}",
-        "--jq", ".pushed_at",
-    ])
+    result = await github.run_gh(
+        [
+            "api",
+            f"repos/{issue.repo}",
+            "--jq",
+            ".pushed_at",
+        ]
+    )
     if not result.success:
         return True, ""
 
@@ -399,6 +460,7 @@ def _is_non_english(title: str, body: str) -> bool:
 
     This is intentionally conservative — mixed English/code content is fine.
     """
+
     def _non_ascii_ratio(text: str) -> float:
         alpha = [c for c in text if c.isalpha()]
         if not alpha:
@@ -452,7 +514,10 @@ async def _check_repo_cooldown(
         remaining_sec = (_REPO_COOLDOWN_HOURS * 3600) - elapsed.total_seconds()
         if remaining_sec > 0:
             remaining_min = int(remaining_sec / 60)
-            return False, f"repo cooldown: last PR submitted {int(elapsed.total_seconds()/60)}m ago ({remaining_min}m remaining)"
+            return (
+                False,
+                f"repo cooldown: last PR submitted {int(elapsed.total_seconds() / 60)}m ago ({remaining_min}m remaining)",
+            )
     except (ValueError, TypeError):
         pass
 

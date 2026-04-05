@@ -37,9 +37,7 @@ _ASSIGNMENT_PATTERNS: list[re.Pattern[str]] = [
 
 # Patterns for commit message format requirements.
 _COMMIT_FORMAT_PATTERNS: dict[str, re.Pattern[str]] = {
-    "conventional": re.compile(
-        r"conventional\s+commit|feat:|fix:|chore:|docs:|refactor:", re.IGNORECASE
-    ),
+    "conventional": re.compile(r"conventional\s+commit|feat:|fix:|chore:|docs:|refactor:", re.IGNORECASE),
     "signed-off": re.compile(r"signed-off-by|DCO|Developer\s+Certificate", re.IGNORECASE),
     "issue-ref": re.compile(r"(reference|include|mention)\s+(the\s+)?(issue|ticket)", re.IGNORECASE),
 }
@@ -101,9 +99,14 @@ async def read_policy(
     # Try to find a CONTRIBUTING file
     contributing_text = ""
     for path in _CONTRIBUTING_PATHS:
-        content_result = await github.run_gh([
-            "api", f"repos/{repo}/contents/{path}", "--jq", ".content",
-        ])
+        content_result = await github.run_gh(
+            [
+                "api",
+                f"repos/{repo}/contents/{path}",
+                "--jq",
+                ".content",
+            ]
+        )
         if content_result.success and content_result.stdout.strip():
             decoded = _decode_base64(content_result.stdout.strip())
             if decoded:
@@ -157,9 +160,14 @@ async def fetch_pr_template(
         "pull_request_template.md",
         "docs/PULL_REQUEST_TEMPLATE.md",
     ):
-        template_result = await github.run_gh([
-            "api", f"repos/{repo}/contents/{template_path}", "--jq", ".content",
-        ])
+        template_result = await github.run_gh(
+            [
+                "api",
+                f"repos/{repo}/contents/{template_path}",
+                "--jq",
+                ".content",
+            ]
+        )
         if template_result.success and template_result.stdout.strip():
             decoded = _decode_base64(template_result.stdout.strip())
             if decoded:

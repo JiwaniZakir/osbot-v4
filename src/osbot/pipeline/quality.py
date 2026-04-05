@@ -36,15 +36,11 @@ async def run_gates(
 
     # 2. Diff size check
     if diff_lines > settings.max_diff_lines:
-        failures.append(
-            f"diff too large: {diff_lines} lines (max {settings.max_diff_lines})"
-        )
+        failures.append(f"diff too large: {diff_lines} lines (max {settings.max_diff_lines})")
 
     # 3. File count check
     if files_changed > settings.max_files_changed:
-        failures.append(
-            f"too many files changed: {files_changed} (max {settings.max_files_changed})"
-        )
+        failures.append(f"too many files changed: {files_changed} (max {settings.max_files_changed})")
 
     # 4. Whole-file reformat detection
     if _detect_reformat(diff_text):
@@ -58,9 +54,7 @@ async def run_gates(
         logger.info("quality_gate_warn", gate="no_test_touched", workspace=workspace)
 
     # 6. Commit message format
-    commit_msg_result = await github.run_git(
-        ["log", "-1", "--format=%s"], cwd=workspace
-    )
+    commit_msg_result = await github.run_git(["log", "-1", "--format=%s"], cwd=workspace)
     commit_msg = commit_msg_result.stdout.strip() if commit_msg_result.success else ""
     msg_ok, msg_reason = _check_commit_message(commit_msg)
     if not msg_ok:
@@ -167,9 +161,7 @@ def _is_test_file(path: str) -> bool:
 
 async def _repo_has_tests(workspace: str, github: GitHubCLIProtocol) -> bool:
     """Check if the repo has a tests directory."""
-    result = await github.run_git(
-        ["ls-tree", "--name-only", "-d", "HEAD"], cwd=workspace
-    )
+    result = await github.run_git(["ls-tree", "--name-only", "-d", "HEAD"], cwd=workspace)
     if not result.success:
         return False
     dirs = result.stdout.strip().splitlines()

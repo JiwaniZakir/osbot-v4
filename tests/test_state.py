@@ -54,9 +54,7 @@ async def test_fact_conflict_resolution(db: MemoryDB) -> None:
 
 async def test_record_and_get_outcome(db: MemoryDB) -> None:
     """Recording an outcome should be retrievable."""
-    await db.record_outcome(
-        "owner/repo", 42, 100, Outcome.SUBMITTED, None, 5000
-    )
+    await db.record_outcome("owner/repo", 42, 100, Outcome.SUBMITTED, None, 5000)
     row = await db.get_outcome("owner/repo", 42)
     assert row is not None
     assert row["outcome"] == "submitted"

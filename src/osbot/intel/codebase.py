@@ -67,30 +67,42 @@ async def analyze_codebase(
         result["language"] = meta.stdout.strip()
 
     # Fetch top-level directory listing via the API
-    tree_result = await github.run_gh([
-        "api", f"repos/{repo}/git/trees/HEAD",
-        "--jq", '.tree[] | .path',
-    ])
+    tree_result = await github.run_gh(
+        [
+            "api",
+            f"repos/{repo}/git/trees/HEAD",
+            "--jq",
+            ".tree[] | .path",
+        ]
+    )
     top_files: set[str] = set()
     if tree_result.success:
         top_files = {line.strip() for line in tree_result.stdout.splitlines() if line.strip()}
 
     # CI detection
     if ".github" in top_files:
-        workflows = await github.run_gh([
-            "api", f"repos/{repo}/contents/.github/workflows",
-            "--jq", '.[].name',
-        ])
+        workflows = await github.run_gh(
+            [
+                "api",
+                f"repos/{repo}/contents/.github/workflows",
+                "--jq",
+                ".[].name",
+            ]
+        )
         if workflows.success and workflows.stdout.strip():
             result["has_ci"] = True
 
     # CONTRIBUTING.md detection
     for candidate in ("CONTRIBUTING.md", "CONTRIBUTING.rst", ".github/CONTRIBUTING.md"):
         if candidate in top_files or candidate.split("/")[0] in top_files:
-            check = await github.run_gh([
-                "api", f"repos/{repo}/contents/{candidate}",
-                "--jq", ".name",
-            ])
+            check = await github.run_gh(
+                [
+                    "api",
+                    f"repos/{repo}/contents/{candidate}",
+                    "--jq",
+                    ".name",
+                ]
+            )
             if check.success and check.stdout.strip():
                 result["has_contributing"] = True
                 break
@@ -122,16 +134,18 @@ async def analyze_codebase(
     return result
 
 
-async def _detect_test_framework(
-    repo: str, top_files: set[str], github: GitHubCLIProtocol
-) -> str | None:
+async def _detect_test_framework(repo: str, top_files: set[str], github: GitHubCLIProtocol) -> str | None:
     """Detect the test framework from config files and content."""
     # Check pyproject.toml for pytest config
     if "pyproject.toml" in top_files:
-        content = await github.run_gh([
-            "api", f"repos/{repo}/contents/pyproject.toml",
-            "--jq", ".content",
-        ])
+        content = await github.run_gh(
+            [
+                "api",
+                f"repos/{repo}/contents/pyproject.toml",
+                "--jq",
+                ".content",
+            ]
+        )
         if content.success:
             text = _decode_base64(content.stdout.strip())
             if text:
@@ -142,10 +156,14 @@ async def _detect_test_framework(
 
     # Check package.json for JS test frameworks
     if "package.json" in top_files:
-        content = await github.run_gh([
-            "api", f"repos/{repo}/contents/package.json",
-            "--jq", ".content",
-        ])
+        content = await github.run_gh(
+            [
+                "api",
+                f"repos/{repo}/contents/package.json",
+                "--jq",
+                ".content",
+            ]
+        )
         if content.success:
             text = _decode_base64(content.stdout.strip())
             if text:
@@ -174,9 +192,7 @@ async def _detect_test_framework(
     return None
 
 
-async def _detect_lint_tool(
-    repo: str, top_files: set[str], github: GitHubCLIProtocol
-) -> str | None:
+async def _detect_lint_tool(repo: str, top_files: set[str], github: GitHubCLIProtocol) -> str | None:
     """Detect the lint tool from config files."""
     # Standalone config files first (highest confidence)
     if "ruff.toml" in top_files:
@@ -194,10 +210,14 @@ async def _detect_lint_tool(
 
     # Check pyproject.toml for ruff/flake8/pylint sections
     if "pyproject.toml" in top_files:
-        content = await github.run_gh([
-            "api", f"repos/{repo}/contents/pyproject.toml",
-            "--jq", ".content",
-        ])
+        content = await github.run_gh(
+            [
+                "api",
+                f"repos/{repo}/contents/pyproject.toml",
+                "--jq",
+                ".content",
+            ]
+        )
         if content.success:
             text = _decode_base64(content.stdout.strip())
             if text:

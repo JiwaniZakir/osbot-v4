@@ -24,8 +24,14 @@ DOMAIN_KEYWORDS: list[str] = settings.domain_keywords
 _NO_AI_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"no\s+(ai|automated|bot)\s+(contributions?|pull\s*requests?|prs?)", re.IGNORECASE),
     re.compile(r"do\s+not\s+(submit|send)\s+(ai|automated|bot)", re.IGNORECASE),
-    re.compile(r"(ai|automated|bot)\s+(contributions?|pull\s*requests?|prs?)\s+are\s+not\s+(accepted|allowed|welcome)", re.IGNORECASE),
-    re.compile(r"(ai|llm|gpt|copilot|chatgpt).generated\s+(code|contributions?|prs?)\s+(are\s+)?(not\s+)?(accepted|allowed|prohibited|banned)", re.IGNORECASE),
+    re.compile(
+        r"(ai|automated|bot)\s+(contributions?|pull\s*requests?|prs?)\s+are\s+not\s+(accepted|allowed|welcome)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(ai|llm|gpt|copilot|chatgpt).generated\s+(code|contributions?|prs?)\s+(are\s+)?(not\s+)?(accepted|allowed|prohibited|banned)",
+        re.IGNORECASE,
+    ),
     re.compile(r"must\s+be\s+(written|authored)\s+by\s+(a\s+)?human", re.IGNORECASE),
 ]
 

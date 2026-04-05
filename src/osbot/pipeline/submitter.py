@@ -19,8 +19,16 @@ logger = get_logger(__name__)
 
 
 _AI_PREFIXES = [
-    "claude:", "gpt:", "chatgpt:", "openai:", "ai:", "copilot:",
-    "gemini:", "bard:", "llm:", "bot:",
+    "claude:",
+    "gpt:",
+    "chatgpt:",
+    "openai:",
+    "ai:",
+    "copilot:",
+    "gemini:",
+    "bard:",
+    "llm:",
+    "bot:",
 ]
 
 
@@ -29,7 +37,7 @@ def _sanitize_title(title: str) -> str:
     stripped = title.strip()
     for prefix in _AI_PREFIXES:
         if stripped.lower().startswith(prefix):
-            stripped = stripped[len(prefix):].strip()
+            stripped = stripped[len(prefix) :].strip()
             break
     return stripped
 
@@ -74,6 +82,7 @@ async def submit(
 
     # 3. Humanizer delay before PR creation (anti-detection)
     from osbot.timing.humanizer import Humanizer
+
     humanizer = Humanizer()
     logger.info("submit_humanizer_delay_start", repo=issue.repo)
     await humanizer.delay_pr_creation()
@@ -98,9 +107,14 @@ async def _ensure_fork(repo: str, github: GitHubCLIProtocol) -> None:
 
     Raises RuntimeError if the fork cannot be confirmed to exist.
     """
-    result = await github.run_gh([
-        "repo", "fork", repo, "--clone=false",
-    ])
+    result = await github.run_gh(
+        [
+            "repo",
+            "fork",
+            repo,
+            "--clone=false",
+        ]
+    )
 
     if result.success:
         logger.debug("fork_created", repo=repo)
@@ -118,10 +132,7 @@ async def _ensure_fork(repo: str, github: GitHubCLIProtocol) -> None:
         logger.debug("fork_verified_existing", repo=repo, fork=fork_repo)
         return
 
-    raise RuntimeError(
-        f"fork creation failed for {repo} and fork {fork_repo} does not exist: "
-        f"{result.stderr[:200]}"
-    )
+    raise RuntimeError(f"fork creation failed for {repo} and fork {fork_repo} does not exist: {result.stderr[:200]}")
 
 
 async def _setup_remote_and_push(
@@ -139,23 +150,15 @@ async def _setup_remote_and_push(
     await github.run_git(["checkout", "-b", branch], cwd=workspace)
 
     # Add fork as remote (ignore error if already exists)
-    add_result = await github.run_git(
-        ["remote", "add", "fork", fork_url], cwd=workspace
-    )
+    add_result = await github.run_git(["remote", "add", "fork", fork_url], cwd=workspace)
     if not add_result.success and "already exists" not in add_result.stderr.lower():
         # Try setting the URL instead
-        await github.run_git(
-            ["remote", "set-url", "fork", fork_url], cwd=workspace
-        )
+        await github.run_git(["remote", "set-url", "fork", fork_url], cwd=workspace)
 
     # Push to fork
-    push_result = await github.run_git(
-        ["push", "-u", "fork", branch, "--force"], cwd=workspace
-    )
+    push_result = await github.run_git(["push", "-u", "fork", branch, "--force"], cwd=workspace)
     if not push_result.success:
-        raise RuntimeError(
-            f"git push failed: {push_result.stderr[:300]}"
-        )
+        raise RuntimeError(f"git push failed: {push_result.stderr[:300]}")
 
     logger.debug("push_done", repo=issue.repo, branch=branch)
 
@@ -177,18 +180,23 @@ async def _create_pr(
 
     head = f"{username}:{branch}"
 
-    result = await github.run_gh([
-        "pr", "create",
-        "--repo", issue.repo,
-        "--head", head,
-        "--title", pr_title,
-        "--body", pr_body,
-    ])
+    result = await github.run_gh(
+        [
+            "pr",
+            "create",
+            "--repo",
+            issue.repo,
+            "--head",
+            head,
+            "--title",
+            pr_title,
+            "--body",
+            pr_body,
+        ]
+    )
 
     if not result.success:
-        raise RuntimeError(
-            f"gh pr create failed: {result.stderr[:300]}"
-        )
+        raise RuntimeError(f"gh pr create failed: {result.stderr[:300]}")
 
     # Parse URL and number from output
     pr_url = result.stdout.strip()

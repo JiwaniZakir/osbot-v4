@@ -88,13 +88,13 @@ Rules:
     for line in result.text.splitlines():
         line = line.strip()
         if line.startswith("FILE:"):
-            file_value = line[len("FILE:"):].strip()
+            file_value = line[len("FILE:") :].strip()
         elif line.startswith("FUNCTION:"):
-            function_value = line[len("FUNCTION:"):].strip()
+            function_value = line[len("FUNCTION:") :].strip()
         elif line.startswith("CHANGE:"):
-            change_value = line[len("CHANGE:"):].strip()
+            change_value = line[len("CHANGE:") :].strip()
         elif line.startswith("SCOPE:"):
-            scope_value = line[len("SCOPE:"):].strip()
+            scope_value = line[len("SCOPE:") :].strip()
 
     logger.info(
         "scope_hint_computed",

@@ -106,21 +106,23 @@ async def _phase_contribute(
                 recent_traces.append(trace)
                 # Keep only the last 50 traces in memory
                 if len(recent_traces) > 50:
-                    del recent_traces[:len(recent_traces) - 50]
+                    del recent_traces[: len(recent_traces) - 50]
             except Exception as trace_exc:
                 logger.debug("trace_write_error", error=str(trace_exc))
 
             # Track submitted PRs for the iteration phase to monitor
             if result.outcome == Outcome.SUBMITTED and result.pr_number:
                 pr_url = result.pr_url or f"https://github.com/{issue.repo}/pull/{result.pr_number}"
-                await state.add_open_pr(OpenPR(
-                    repo=issue.repo,
-                    issue_number=issue.number,
-                    pr_number=result.pr_number,
-                    url=pr_url,
-                    branch=f"fix/{issue.number}",
-                    submitted_at=datetime.now(UTC).isoformat(),
-                ))
+                await state.add_open_pr(
+                    OpenPR(
+                        repo=issue.repo,
+                        issue_number=issue.number,
+                        pr_number=result.pr_number,
+                        url=pr_url,
+                        branch=f"fix/{issue.number}",
+                        submitted_at=datetime.now(UTC).isoformat(),
+                    )
+                )
                 logger.info(
                     "pr_tracked",
                     repo=issue.repo,
@@ -139,6 +141,7 @@ async def _phase_contribute(
 
                 # Celebrate! Send webhook alert for successful PR submission
                 from osbot.comms.webhook import send_alert
+
                 pr_url = result.pr_url or f"https://github.com/{issue.repo}/pull/{result.pr_number}"
                 await send_alert(
                     f"PR submitted! {issue.repo}#{issue.number} -> PR #{result.pr_number}: {pr_url}",
@@ -151,6 +154,7 @@ async def _phase_contribute(
             # only returns SUBMITTED, never MERGED.
             if result.outcome == Outcome.REJECTED and result.failure_reason:
                 from osbot.learning.lessons import on_rejection
+
                 await on_rejection(issue.repo, issue.number, result.failure_reason, db)
 
         except Exception as exc:
@@ -207,14 +211,18 @@ async def _phase_iterate(
         if update.is_merged:
             await state.remove_pr(pr.pr_number)
             await db.record_outcome(
-                repo=pr.repo, issue_number=pr.issue_number,
-                pr_number=pr.pr_number, outcome="merged",
-                failure_reason=None, tokens_used=0,
+                repo=pr.repo,
+                issue_number=pr.issue_number,
+                pr_number=pr.pr_number,
+                outcome="merged",
+                failure_reason=None,
+                tokens_used=0,
             )
             logger.info("pr_merged", repo=pr.repo, pr=pr.pr_number)
             # Positive learning: extract what worked for this repo
             try:
                 from osbot.learning.lessons import on_merge
+
                 await on_merge(pr.repo, pr.issue_number, db)
             except Exception as exc:
                 logger.warning("on_merge_learning_failed", repo=pr.repo, error=str(exc))
@@ -224,9 +232,12 @@ async def _phase_iterate(
         if update.is_closed:
             await state.remove_pr(pr.pr_number)
             await db.record_outcome(
-                repo=pr.repo, issue_number=pr.issue_number,
-                pr_number=pr.pr_number, outcome="rejected",
-                failure_reason="closed by maintainer", tokens_used=0,
+                repo=pr.repo,
+                issue_number=pr.issue_number,
+                pr_number=pr.pr_number,
+                outcome="rejected",
+                failure_reason="closed by maintainer",
+                tokens_used=0,
             )
             logger.info("pr_closed", repo=pr.repo, pr=pr.pr_number)
             await _cleanup_fork(pr.repo, github)
@@ -235,8 +246,7 @@ async def _phase_iterate(
         # Process new feedback
         if update.has_new_feedback:
             all_comments = update.new_comments + [
-                c for r in update.new_reviews
-                for c in r.get("comments", {}).get("nodes", [])
+                c for r in update.new_reviews for c in r.get("comments", {}).get("nodes", [])
             ]
             # Add review bodies as top-level comments too
             for review in update.new_reviews:
@@ -248,8 +258,7 @@ async def _phase_iterate(
             bot_login = settings.github_username.lower()
             if bot_login:
                 all_comments = [
-                    c for c in all_comments
-                    if (c.get("author") or {}).get("login", "").lower() != bot_login
+                    c for c in all_comments if (c.get("author") or {}).get("login", "").lower() != bot_login
                 ]
 
             if all_comments:
@@ -257,15 +266,16 @@ async def _phase_iterate(
 
                 # Check for blockers that need human intervention
                 from osbot.comms.blocker import notify_blocker
-                comment_text = " ".join(
-                    (c.get("body") or "").lower() for c in all_comments
-                )
+
+                comment_text = " ".join((c.get("body") or "").lower() for c in all_comments)
                 pr_url = f"https://github.com/{pr.repo}/pull/{pr.pr_number}"
 
                 if any(kw in comment_text for kw in ("screenshot", "visual", "screen shot", "screencast")):
                     await notify_blocker(
                         "screenshot_requested",
-                        repo=pr.repo, pr_number=str(pr.pr_number), pr_url=pr_url,
+                        repo=pr.repo,
+                        pr_number=str(pr.pr_number),
+                        pr_url=pr_url,
                     )
 
                 if feedback.feedback_type == FeedbackType.QUESTION and not feedback.should_patch:
@@ -273,8 +283,10 @@ async def _phase_iterate(
                     question_preview = comment_text[:200]
                     await notify_blocker(
                         "maintainer_question",
-                        repo=pr.repo, pr_number=str(pr.pr_number),
-                        pr_url=pr_url, question=question_preview,
+                        repo=pr.repo,
+                        pr_number=str(pr.pr_number),
+                        pr_url=pr_url,
+                        question=question_preview,
                     )
 
                 if feedback.should_patch:
@@ -291,28 +303,37 @@ async def _phase_iterate(
                     # Clone the bot's fork directly on the PR branch (no default-branch detour).
                     # --no-single-branch lets us fetch other branches after cloning.
                     fork_url = f"https://github.com/{settings.github_username}/{pr.repo.split('/')[-1]}.git"
-                    clone_result = await github.run_git([
-                        "clone", "--depth=50", "--no-single-branch",
-                        "-b", pr.branch, fork_url, workspace,
-                    ])
+                    clone_result = await github.run_git(
+                        [
+                            "clone",
+                            "--depth=50",
+                            "--no-single-branch",
+                            "-b",
+                            pr.branch,
+                            fork_url,
+                            workspace,
+                        ]
+                    )
                     if not clone_result.success:
                         # Fallback: clone upstream then fetch the branch from fork
-                        clone_result = await github.run_git([
-                            "clone", "--depth=50", "--no-single-branch",
-                            f"https://github.com/{pr.repo}.git", workspace,
-                        ])
+                        clone_result = await github.run_git(
+                            [
+                                "clone",
+                                "--depth=50",
+                                "--no-single-branch",
+                                f"https://github.com/{pr.repo}.git",
+                                workspace,
+                            ]
+                        )
                         if clone_result.success:
-                            await github.run_git(
-                                ["remote", "add", "fork", fork_url], cwd=workspace
-                            )
-                            await github.run_git(
-                                ["fetch", "fork", pr.branch], cwd=workspace
-                            )
+                            await github.run_git(["remote", "add", "fork", fork_url], cwd=workspace)
+                            await github.run_git(["fetch", "fork", pr.branch], cwd=workspace)
                     if clone_result.success:
                         await apply_patch(pr, feedback, workspace, gateway_protocol, github)  # type: ignore[arg-type]
 
                         # Record feedback for learning
                         from osbot.learning.lessons import on_feedback
+
                         maintainer = all_comments[0].get("author", {}).get("login", "") if all_comments else ""
                         await on_feedback(pr.repo, maintainer, feedback.feedback_type.value, "", db)
                     else:
@@ -320,6 +341,7 @@ async def _phase_iterate(
 
                     # Cleanup workspace
                     import shutil
+
                     shutil.rmtree(workspace, ignore_errors=True)
 
         # Always update last_checked_at so the monitor doesn't re-trigger on the
@@ -352,11 +374,17 @@ async def _phase_monitor(
 
     for pr in open_prs:
         try:
-            result = await github.run_gh([
-                "pr", "view", str(pr.pr_number),
-                "--repo", pr.repo,
-                "--json", "state,mergeable",
-            ])
+            result = await github.run_gh(
+                [
+                    "pr",
+                    "view",
+                    str(pr.pr_number),
+                    "--repo",
+                    pr.repo,
+                    "--json",
+                    "state,mergeable",
+                ]
+            )
             if result.success:
                 data = json.loads(result.stdout)
                 status = data.get("state", "").upper()
@@ -399,17 +427,33 @@ async def _phase_monitor(
 
 
 # CLA bot usernames and keywords to detect CLA-related comments.
-_CLA_BOT_USERNAMES: frozenset[str] = frozenset({
-    "claassistant", "cla-assistant", "googlebot", "google-cla",
-    "mslobot", "microsoft-cla", "linux-foundation-easycla", "easycla",
-    "cla-bot", "allcontributors", "cla-checker", "apache-cla",
-    "salesforce-cla",
-})
+_CLA_BOT_USERNAMES: frozenset[str] = frozenset(
+    {
+        "claassistant",
+        "cla-assistant",
+        "googlebot",
+        "google-cla",
+        "mslobot",
+        "microsoft-cla",
+        "linux-foundation-easycla",
+        "easycla",
+        "cla-bot",
+        "allcontributors",
+        "cla-checker",
+        "apache-cla",
+        "salesforce-cla",
+    }
+)
 
 _CLA_COMMENT_PATTERNS: list[str] = [
-    "cla", "contributor license agreement", "cla-assistant",
-    "salesforce-cla", "sign the cla", "sign our cla",
-    "please sign", "cla signature",
+    "cla",
+    "contributor license agreement",
+    "cla-assistant",
+    "salesforce-cla",
+    "sign the cla",
+    "sign our cla",
+    "please sign",
+    "cla signature",
 ]
 
 
@@ -428,11 +472,17 @@ async def _check_cla_comments(
     if already_notified:
         return
 
-    result = await github.run_gh([
-        "pr", "view", str(pr.pr_number),
-        "--repo", pr.repo,
-        "--json", "comments",
-    ])
+    result = await github.run_gh(
+        [
+            "pr",
+            "view",
+            str(pr.pr_number),
+            "--repo",
+            pr.repo,
+            "--json",
+            "comments",
+        ]
+    )
     if not result.success:
         return
 
@@ -513,11 +563,17 @@ async def _is_pr_stale(
     """
     bot_username = settings.github_username
     try:
-        result = await github.run_gh([
-            "pr", "view", str(pr.pr_number),
-            "--repo", pr.repo,
-            "--json", "comments",
-        ])
+        result = await github.run_gh(
+            [
+                "pr",
+                "view",
+                str(pr.pr_number),
+                "--repo",
+                pr.repo,
+                "--json",
+                "comments",
+            ]
+        )
         if not result.success:
             return False
 
@@ -531,11 +587,17 @@ async def _is_pr_stale(
                 return False
 
         # Also check reviews
-        review_result = await github.run_gh([
-            "pr", "view", str(pr.pr_number),
-            "--repo", pr.repo,
-            "--json", "reviews",
-        ])
+        review_result = await github.run_gh(
+            [
+                "pr",
+                "view",
+                str(pr.pr_number),
+                "--repo",
+                pr.repo,
+                "--json",
+                "reviews",
+            ]
+        )
         if review_result.success:
             review_data = json.loads(review_result.stdout)
             reviews = review_data.get("reviews", [])
@@ -561,27 +623,35 @@ async def _close_stale_pr(
 
     Records the outcome as ``Outcome.IGNORED`` and removes from tracked state.
     """
-    close_comment = (
-        "Closing this PR as it hasn't received maintainer review. "
-        "Happy to resubmit if there's interest."
-    )
+    close_comment = "Closing this PR as it hasn't received maintainer review. Happy to resubmit if there's interest."
 
     # Post closing comment
     try:
-        await github.run_gh([
-            "pr", "comment", str(pr.pr_number),
-            "--repo", pr.repo,
-            "--body", close_comment,
-        ])
+        await github.run_gh(
+            [
+                "pr",
+                "comment",
+                str(pr.pr_number),
+                "--repo",
+                pr.repo,
+                "--body",
+                close_comment,
+            ]
+        )
     except Exception as exc:
         logger.debug("stale_close_comment_error", repo=pr.repo, pr=pr.pr_number, error=str(exc))
 
     # Close the PR
     try:
-        close_result = await github.run_gh([
-            "pr", "close", str(pr.pr_number),
-            "--repo", pr.repo,
-        ])
+        close_result = await github.run_gh(
+            [
+                "pr",
+                "close",
+                str(pr.pr_number),
+                "--repo",
+                pr.repo,
+            ]
+        )
         if close_result.success:
             logger.info("stale_pr_closed", repo=pr.repo, pr=pr.pr_number)
         else:
@@ -696,6 +766,7 @@ async def _shutdown(
 
     # Stop the gateway's background consumer
     from osbot.gateway.claude import ClaudeGateway
+
     if isinstance(gateway, ClaudeGateway):
         try:
             await gateway.shutdown()
@@ -749,6 +820,7 @@ async def run() -> None:
 
     # -- Create Claude gateway with token tracking callback --
     from osbot.gateway.claude import ClaudeGateway
+
     gateway = ClaudeGateway(
         on_call_complete=lambda tokens, model: balancer._decay.record(tokens, model),
     )
@@ -772,6 +844,7 @@ async def run() -> None:
         logger.error("orchestrator_halted", reason="health_check_failed")
         # Notify owner instead of just dying
         from osbot.comms.blocker import notify_blocker
+
         await notify_blocker("health_failed", failed_checks="see logs for details")
         # Don't return — retry in a loop. Health issues may be transient.
         logger.info("health_check_retry_loop", msg="Will retry every 60s")
@@ -797,6 +870,7 @@ async def run() -> None:
     # Session 3: Seed default prompt variants if table is empty
     try:
         from osbot.learning.prompt_variants import seed_variants
+
         await seed_variants(db)
     except Exception as exc:
         logger.warning("seed_variants_failed", error=str(exc))
@@ -829,6 +903,7 @@ async def run() -> None:
         # -- OAuth token expiry check (every cycle, before contribute) --
         try:
             from osbot.tokens.probe import check_token_expiry
+
             await check_token_expiry()
         except Exception as exc:
             logger.debug("token_expiry_check_error", cycle=cycle_count, error=str(exc))
@@ -851,10 +926,18 @@ async def run() -> None:
                 tg.create_task(_phase_notify(github, gateway))
 
                 # Contribute runs every cycle
-                tg.create_task(_phase_contribute(
-                    workers, state, gateway, github, db, balancer,
-                    trace_writer, recent_traces,
-                ))
+                tg.create_task(
+                    _phase_contribute(
+                        workers,
+                        state,
+                        gateway,
+                        github,
+                        db,
+                        balancer,
+                        trace_writer,
+                        recent_traces,
+                    )
+                )
 
                 # Iterate runs every cycle
                 tg.create_task(_phase_iterate(state, github, db, gateway))

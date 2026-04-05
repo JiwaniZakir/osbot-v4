@@ -35,9 +35,11 @@ logger = get_logger(__name__)
 # Style seeds -- structural variations for PR descriptions
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True, slots=True)
 class _StyleSeed:
     """A prompt variation that controls the structural ordering of a PR body."""
+
     name: str
     instruction: str
 
@@ -303,9 +305,7 @@ def _validate_specificity(body: str) -> bool:
     references actual code, not generic platitudes.
     """
     has_file_path = bool(re.search(r"[\w/]+\.\w{1,4}", body))
-    has_func_name = bool(
-        re.search(r"(?:def |function |class |`\w+\(|`\w+`)", body)
-    )
+    has_func_name = bool(re.search(r"(?:def |function |class |`\w+\(|`\w+`)", body))
     return has_file_path and has_func_name
 
 

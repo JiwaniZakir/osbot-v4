@@ -79,7 +79,9 @@ def validate_pr_description(description: str) -> tuple[bool, str]:
 
 
 async def generate_comment(
-    context: dict[str, Any], comment_type: str, gateway: ClaudeGatewayProtocol,
+    context: dict[str, Any],
+    comment_type: str,
+    gateway: ClaudeGatewayProtocol,
 ) -> str:
     """Generate a human-facing comment via Claude, then post-process.
 
@@ -94,8 +96,11 @@ async def generate_comment(
     result = await gateway.invoke(
         prompt,
         phase=Phase.ITERATE if comment_type == "feedback_response" else Phase.ENGAGE,
-        model="sonnet", allowed_tools=[], cwd=None,
-        timeout=30.0, priority=Priority.CLAIM_COMMENT,
+        model="sonnet",
+        allowed_tools=[],
+        cwd=None,
+        timeout=30.0,
+        priority=Priority.CLAIM_COMMENT,
     )
     if not result.success or not result.text.strip():
         logger.warning("comment_generation_failed", comment_type=comment_type, error=result.error)

@@ -18,20 +18,22 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 # Known CLA bot usernames (case-insensitive matching).
-_CLA_BOT_USERNAMES: frozenset[str] = frozenset({
-    "claassistant",
-    "cla-assistant",
-    "googlebot",
-    "google-cla",
-    "mslobot",
-    "microsoft-cla",
-    "linux-foundation-easycla",
-    "easycla",
-    "cla-bot",
-    "allcontributors",
-    "cla-checker",
-    "apache-cla",
-})
+_CLA_BOT_USERNAMES: frozenset[str] = frozenset(
+    {
+        "claassistant",
+        "cla-assistant",
+        "googlebot",
+        "google-cla",
+        "mslobot",
+        "microsoft-cla",
+        "linux-foundation-easycla",
+        "easycla",
+        "cla-bot",
+        "allcontributors",
+        "cla-checker",
+        "apache-cla",
+    }
+)
 
 # Keywords in CONTRIBUTING.md that indicate CLA requirement.
 _CLA_KEYWORDS: list[re.Pattern[str]] = [
@@ -106,9 +108,7 @@ async def check_cla(
     return True, ""
 
 
-async def _check_cla_bots(
-    owner: str, name: str, github: GitHubCLIProtocol
-) -> str | None:
+async def _check_cla_bots(owner: str, name: str, github: GitHubCLIProtocol) -> str | None:
     """Scan recent PR comments for CLA bot usernames.
 
     Returns ``"needs_signing"`` if a CLA bot is found, else ``None``.
@@ -137,12 +137,7 @@ async def _check_cla_bots(
         logger.debug("cla_graphql_failed", owner=owner, repo=name)
         return None
 
-    prs = (
-        data.get("data", {})
-        .get("repository", {})
-        .get("pullRequests", {})
-        .get("nodes", [])
-    )
+    prs = data.get("data", {}).get("repository", {}).get("pullRequests", {}).get("nodes", [])
 
     for pr in prs:
         for comment in pr.get("comments", {}).get("nodes", []):
@@ -157,9 +152,7 @@ async def _check_cla_bots(
     return None
 
 
-async def _check_contributing_docs(
-    owner: str, name: str, github: GitHubCLIProtocol
-) -> str | None:
+async def _check_contributing_docs(owner: str, name: str, github: GitHubCLIProtocol) -> str | None:
     """Fetch CONTRIBUTING.md and scan for CLA language."""
     for path in ("CONTRIBUTING.md", ".github/CONTRIBUTING.md", "CONTRIBUTING.rst"):
         result = await github.run_gh(

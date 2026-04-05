@@ -28,9 +28,14 @@ DEAD_CYCLE_THRESHOLD = 15
 
 # Operational failure markers in trace detail/outcome.
 _OPERATIONAL_MARKERS = (
-    "tos", "terms of service", "accept terms",
-    "auth error", "authentication", "not logged in",
-    "oauth", "token expired",
+    "tos",
+    "terms of service",
+    "accept terms",
+    "auth error",
+    "authentication",
+    "not logged in",
+    "oauth",
+    "token expired",
 )
 
 
@@ -86,9 +91,9 @@ async def fast_diagnostic(
                 )
                 # Send webhook alert for halt corrections
                 from osbot.comms.webhook import send_alert
+
                 await send_alert(
-                    f"HALT: {marker} in {trace.repo} ({trace.phase}). "
-                    f"Detail: {(trace.failure_reason or '')[:100]}",
+                    f"HALT: {marker} in {trace.repo} ({trace.phase}). Detail: {(trace.failure_reason or '')[:100]}",
                     severity="critical",
                 )
                 # One halt is enough -- return immediately.
@@ -184,6 +189,7 @@ async def fast_diagnostic(
 
         # Send webhook alert for high severity findings
         from osbot.comms.webhook import send_alert
+
         await send_alert(
             f"Dead cycles: {len(window)} traces with 0 submissions. Forcing discovery.",
             severity="high",
@@ -197,9 +203,9 @@ async def fast_diagnostic(
 # ---------------------------------------------------------------------------
 
 # Thresholds for deep analysis
-_DEEP_ATTEMPT_THRESHOLD = 5   # repos with N+ attempts and 0 submissions -> ban
+_DEEP_ATTEMPT_THRESHOLD = 5  # repos with N+ attempts and 0 submissions -> ban
 _DEEP_BAN_DAYS = 14
-_WASTE_RATIO_ALERT = 0.30     # warn if > 30% of Claude calls didn't lead to submission
+_WASTE_RATIO_ALERT = 0.30  # warn if > 30% of Claude calls didn't lead to submission
 
 
 async def deep_diagnostic(
@@ -301,6 +307,7 @@ async def deep_diagnostic(
                 corrections.append(correction)
 
                 from osbot.comms.webhook import send_alert
+
                 await send_alert(
                     f"Waste ratio {waste_ratio:.1%}: {total} attempts, {submitted} submissions. "
                     f"Threshold: {_WASTE_RATIO_ALERT:.0%}.",

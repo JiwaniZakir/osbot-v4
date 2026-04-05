@@ -75,11 +75,7 @@ class DecayModel:
         # Entries that are currently in-window but will be out-of-window at t+lookahead
         future_cutoff = t + timedelta(minutes=lookahead_min) - timedelta(seconds=self.window_seconds)
         current_cutoff = now - timedelta(seconds=self.window_seconds)
-        return sum(
-            e.tokens
-            for e in self._ledger
-            if e.ts >= current_cutoff and e.ts < future_cutoff
-        )
+        return sum(e.tokens for e in self._ledger if e.ts >= current_cutoff and e.ts < future_cutoff)
 
     def effective_headroom(self, probe_headroom: float) -> float:
         """Adjust probe headroom by accounting for tokens about to decay off.

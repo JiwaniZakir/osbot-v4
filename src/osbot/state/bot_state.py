@@ -116,13 +116,14 @@ class BotState:
 
             # Apply per-repo cap: keep only the top-scored issues per repo
             from collections import defaultdict
+
             by_repo: dict[str, list] = defaultdict(list)
             for issue in existing.values():
                 by_repo[issue.repo].append(issue)
 
             capped: dict[str, ScoredIssue] = {}
             for repo_issues in by_repo.values():
-                top = sorted(repo_issues, key=lambda i: i.score, reverse=True)[:self._MAX_PER_REPO]
+                top = sorted(repo_issues, key=lambda i: i.score, reverse=True)[: self._MAX_PER_REPO]
                 for i in top:
                     capped[self._issue_key(i)] = i
 

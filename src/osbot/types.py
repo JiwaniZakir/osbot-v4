@@ -105,7 +105,7 @@ class RepoMeta:
     requires_assignment: bool = False
     has_ai_policy: bool = False
     ci_enabled: bool = False
-    external_merge_rate: float = 0.0        # 0.0 - 1.0
+    external_merge_rate: float = 0.0  # 0.0 - 1.0
     avg_response_hours: float = 0.0
     close_completion_rate: float = 0.0
     score: float = 0.0
@@ -113,6 +113,7 @@ class RepoMeta:
     @property
     def full_name(self) -> str:
         return f"{self.owner}/{self.name}"
+
     last_push_at: str = ""
 
 
@@ -120,7 +121,7 @@ class RepoMeta:
 class ScoredIssue:
     """An issue scored and ready for the queue."""
 
-    repo: str                               # "owner/name"
+    repo: str  # "owner/name"
     number: int
     title: str
     body: str = ""
@@ -204,11 +205,11 @@ class PipelineResult:
 class Trace:
     """Single append-only trace entry (traces.jsonl)."""
 
-    ts: str                                 # ISO 8601
+    ts: str  # ISO 8601
     repo: str
     issue_number: int
     phase: str
-    outcome: str                            # success, rejected, timeout, error, skipped
+    outcome: str  # success, rejected, timeout, error, skipped
     failure_reason: str | None = None
     tokens_used: int = 0
     claude_calls: int = 0
@@ -220,12 +221,12 @@ class Trace:
 class Correction:
     """Self-diagnostic correction (corrections.jsonl)."""
 
-    ts: str                                 # ISO 8601
-    type: str                               # ban_repo, alert, score_adjust, force_discovery
+    ts: str  # ISO 8601
+    type: str  # ban_repo, alert, score_adjust, force_discovery
     repo: str = ""
     days: int = 0
     reason: str = ""
-    severity: str = ""                      # low, medium, high (for alerts)
+    severity: str = ""  # low, medium, high (for alerts)
     message: str = ""
 
 
@@ -241,7 +242,7 @@ class OpenPR:
     submitted_at: str
     last_checked_at: str = ""
     iteration_count: int = 0
-    status: str = "open"                    # open, merged, closed
+    status: str = "open"  # open, merged, closed
 
 
 @dataclass(frozen=True, slots=True)
@@ -263,15 +264,15 @@ class FeedbackResult:
     actions: list[FeedbackAction] = field(default_factory=list)
     should_respond: bool = True
     should_patch: bool = False
-    is_terminal: bool = False               # True if rejection
+    is_terminal: bool = False  # True if rejection
 
 
 @dataclass(frozen=True, slots=True)
 class UsageSnapshot:
     """A single probe reading from the OAuth usage endpoint."""
 
-    ts: str                                 # ISO 8601
-    five_hour: float                        # 0.0 - 1.0 utilization
+    ts: str  # ISO 8601
+    five_hour: float  # 0.0 - 1.0 utilization
     seven_day: float
     opus_weekly: float
     sonnet_weekly: float
@@ -292,22 +293,22 @@ class UsageDelta:
 class WorkerPlan:
     """Output of the predictive scheduler: how many workers to run."""
 
-    workers: int                                # 1-5
-    reason: str                                 # human-readable explanation
-    confidence: float                           # 0.0-1.0 pattern model confidence
-    predicted_user_usage: float = 0.0           # predicted user delta over horizon
-    headroom_at_horizon: float = 0.0            # estimated headroom at end of plan
+    workers: int  # 1-5
+    reason: str  # human-readable explanation
+    confidence: float  # 0.0-1.0 pattern model confidence
+    predicted_user_usage: float = 0.0  # predicted user delta over horizon
+    headroom_at_horizon: float = 0.0  # estimated headroom at end of plan
 
 
 @dataclass(frozen=True, slots=True)
 class PatternSlot:
     """One entry in the weekly usage heatmap."""
 
-    day_of_week: int                            # 0=Monday, 6=Sunday
-    hour: int                                   # 0-23
-    slot: int                                   # 0-11 (5-min slot within the hour)
-    avg_user_delta: float                       # average user utilization delta
-    sample_count: int                           # observations for this slot
+    day_of_week: int  # 0=Monday, 6=Sunday
+    hour: int  # 0-23
+    slot: int  # 0-11 (5-min slot within the hour)
+    avg_user_delta: float  # average user utilization delta
+    sample_count: int  # observations for this slot
 
 
 # ---------------------------------------------------------------------------
@@ -353,9 +354,7 @@ class MemoryDBProtocol(Protocol):
     async def fetchval(self, sql: str, params: tuple[Any, ...] = ()) -> Any: ...
 
     async def get_repo_fact(self, repo: str, key: str) -> str | None: ...
-    async def set_repo_fact(
-        self, repo: str, key: str, value: str, source: str, confidence: float = 0.5
-    ) -> None: ...
+    async def set_repo_fact(self, repo: str, key: str, value: str, source: str, confidence: float = 0.5) -> None: ...
     async def get_outcome(self, repo: str, issue_number: int) -> dict[str, Any] | None: ...
     async def record_outcome(
         self,
@@ -371,12 +370,20 @@ class MemoryDBProtocol(Protocol):
     async def ban_repo(self, repo: str, reason: str, days: int, created_by: str) -> None: ...
     async def close(self) -> None: ...
     async def record_skill(
-        self, repo: str, issue_number: int, issue_type: str | None,
-        language: str | None, pattern: str | None, diff_summary: str,
+        self,
+        repo: str,
+        issue_number: int,
+        issue_type: str | None,
+        language: str | None,
+        pattern: str | None,
+        diff_summary: str,
         title: str | None = None,
     ) -> int: ...
     async def get_relevant_skills(
-        self, issue_type: str | None, language: str | None, limit: int = 2,
+        self,
+        issue_type: str | None,
+        language: str | None,
+        limit: int = 2,
     ) -> list[dict[str, Any]]: ...
 
 

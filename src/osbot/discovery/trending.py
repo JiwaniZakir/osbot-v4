@@ -112,17 +112,25 @@ async def _search_star_velocity(
     all_results: list[dict[str, Any]] = []
 
     for language in settings.allowed_languages:
-        result = await github.run_gh([
-            "search", "repos",
-            "--language", language,
-            "--sort", "stars",
-            "--order", "desc",
-            "--limit", str(_SEARCH_LIMIT),
-            "--json", "fullName,description,language,stargazersCount,pushedAt,isArchived,repositoryTopics",
-            "--",
-            f"stars:>={_MIN_STARS_TRENDING}",
-            created_qualifier,
-        ])
+        result = await github.run_gh(
+            [
+                "search",
+                "repos",
+                "--language",
+                language,
+                "--sort",
+                "stars",
+                "--order",
+                "desc",
+                "--limit",
+                str(_SEARCH_LIMIT),
+                "--json",
+                "fullName,description,language,stargazersCount,pushedAt,isArchived,repositoryTopics",
+                "--",
+                f"stars:>={_MIN_STARS_TRENDING}",
+                created_qualifier,
+            ]
+        )
 
         if not result.success:
             logger.debug(
@@ -152,18 +160,26 @@ async def _search_issue_spike(
     all_results: list[dict[str, Any]] = []
 
     for language in settings.allowed_languages:
-        result = await github.run_gh([
-            "search", "repos",
-            "--language", language,
-            "--sort", "updated",
-            "--order", "desc",
-            "--limit", str(_SEARCH_LIMIT),
-            "--json", "fullName,description,language,stargazersCount,pushedAt,isArchived,repositoryTopics",
-            "--",
-            "help-wanted-issues:>5",
-            f"stars:{settings.repo_min_stars}..{settings.repo_max_stars}",
-            pushed_qualifier,
-        ])
+        result = await github.run_gh(
+            [
+                "search",
+                "repos",
+                "--language",
+                language,
+                "--sort",
+                "updated",
+                "--order",
+                "desc",
+                "--limit",
+                str(_SEARCH_LIMIT),
+                "--json",
+                "fullName,description,language,stargazersCount,pushedAt,isArchived,repositoryTopics",
+                "--",
+                "help-wanted-issues:>5",
+                f"stars:{settings.repo_min_stars}..{settings.repo_max_stars}",
+                pushed_qualifier,
+            ]
+        )
 
         if not result.success:
             logger.debug(

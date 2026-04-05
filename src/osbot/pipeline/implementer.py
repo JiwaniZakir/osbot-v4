@@ -77,7 +77,7 @@ def _build_prompt(
             "   Touch ONLY the file(s) containing the root cause you identified in Step 0.\n"
             "   Do NOT refactor surrounding code, add helpers, or improve unrelated things.\n"
             "3. Stage and COMMIT your fix immediately after making it.\n"
-            '   Single-line commit message in imperative mood, 10-100 chars.\n'
+            "   Single-line commit message in imperative mood, 10-100 chars.\n"
             '   e.g., "Fix missing null check in parser" or "fix: off-by-one in tokenizer"\n'
             "   DO NOT skip this step — a fix that is never committed produces no output.\n"
             "4. If the repo has tests, add or update ONE test that covers your fix.\n"
@@ -150,7 +150,7 @@ def _build_contributor_patterns(benchmark: dict) -> str:
 
     prefix_style = benchmark.get("commit_prefix_style", "")
     if prefix_style:
-        parts.append(f"- Commit style: \"{prefix_style}\"")
+        parts.append(f'- Commit style: "{prefix_style}"')
     elif benchmark.get("uses_conventional_commits"):
         parts.append("- Uses conventional commit style (fix: / feat: / chore:)")
 
@@ -329,6 +329,7 @@ async def implement(
     skills_section = ""
     try:
         from osbot.learning.skill_library import get_skill_example
+
         language = getattr(issue, "language", "") or ""
         skills_section = await get_skill_example(issue, language, db)
     except Exception:
@@ -356,7 +357,7 @@ async def implement(
             seen: set[str] = set()
             lines: list[str] = []
             for row in rejection_rows:
-                reason = (row.get("failure_reason") or "")
+                reason = row.get("failure_reason") or ""
                 # Extract the part after "critic rejected: "
                 if "critic rejected:" in reason:
                     reason = reason.split("critic rejected:", 1)[-1].strip()
@@ -366,9 +367,7 @@ async def implement(
                     lines.append(f"- {reason}")
             if lines:
                 repo_rejections_section = (
-                    "PREVIOUS REJECTIONS ON THIS REPO (avoid repeating these):\n"
-                    + "\n".join(lines)
-                    + "\n"
+                    "PREVIOUS REJECTIONS ON THIS REPO (avoid repeating these):\n" + "\n".join(lines) + "\n"
                 )
     except Exception:
         pass  # DB unavailable -- no problem
@@ -408,7 +407,9 @@ async def implement(
     combined_reflections = repo_rejections_section + reflections_section + skills_section
 
     prompt = _build_prompt(
-        issue, workspace, style_notes,
+        issue,
+        workspace,
+        style_notes,
         contributor_patterns=contributor_patterns,
         meta_lessons=meta_lessons_section,
         reflections=combined_reflections,

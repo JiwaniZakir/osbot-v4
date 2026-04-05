@@ -20,14 +20,14 @@ class Humanizer:
     """
 
     # Delay ranges in seconds
-    PR_DELAY_MIN: int = 900       # 15 min
-    PR_DELAY_MAX: int = 2700      # 45 min
-    FEEDBACK_DELAY_MIN: int = 1800   # 30 min
+    PR_DELAY_MIN: int = 900  # 15 min
+    PR_DELAY_MAX: int = 2700  # 45 min
+    FEEDBACK_DELAY_MIN: int = 1800  # 30 min
     FEEDBACK_DELAY_MAX: int = 14400  # 4 hours
-    CLAIM_DELAY_MIN: int = 0         # near-instant
-    CLAIM_DELAY_MAX: int = 120       # 2 min
-    ENGAGE_DELAY_MIN: int = 300      # 5 min
-    ENGAGE_DELAY_MAX: int = 900      # 15 min
+    CLAIM_DELAY_MIN: int = 0  # near-instant
+    CLAIM_DELAY_MAX: int = 120  # 2 min
+    ENGAGE_DELAY_MIN: int = 300  # 5 min
+    ENGAGE_DELAY_MAX: int = 900  # 15 min
 
     # ------------------------------------------------------------------
     # Async delays (actually sleep)
@@ -41,9 +41,7 @@ class Humanizer:
 
     async def delay_feedback_response(self) -> None:
         """Wait 30 min - 4 hours before responding to maintainer feedback."""
-        seconds = self.jitter(
-            (self.FEEDBACK_DELAY_MIN + self.FEEDBACK_DELAY_MAX) / 2, variance=0.75
-        )
+        seconds = self.jitter((self.FEEDBACK_DELAY_MIN + self.FEEDBACK_DELAY_MAX) / 2, variance=0.75)
         seconds = max(self.FEEDBACK_DELAY_MIN, min(self.FEEDBACK_DELAY_MAX, seconds))
         await asyncio.sleep(seconds)
 

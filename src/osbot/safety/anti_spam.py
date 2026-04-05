@@ -21,10 +21,12 @@ logger = get_logger(__name__)
 
 # Orgs known to actively hunt and ban bot PRs.
 # Add entries here only with strong evidence (public statements, bot bans).
-_BLACKLISTED_ORGS: frozenset[str] = frozenset({
-    # scikit-learn explicitly bans automated contributions
-    "scikit-learn",
-})
+_BLACKLISTED_ORGS: frozenset[str] = frozenset(
+    {
+        # scikit-learn explicitly bans automated contributions
+        "scikit-learn",
+    }
+)
 
 
 async def check_spam(

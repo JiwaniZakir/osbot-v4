@@ -412,20 +412,22 @@ async def test_notify_filters_own_comments(mock_settings: object) -> None:
     # Second call: fetching comments
     comments_response = CLIResult(
         returncode=0,
-        stdout=json.dumps([
-            {
-                "user": {"login": BOT_USERNAME},
-                "body": "I submitted a fix for this.",
-            },
-            {
-                "user": {"login": "maintainer-alice"},
-                "body": "Can you add a test for the edge case?",
-            },
-            {
-                "user": {"login": "contributor-bob"},
-                "body": "I also hit this bug.",
-            },
-        ]),
+        stdout=json.dumps(
+            [
+                {
+                    "user": {"login": BOT_USERNAME},
+                    "body": "I submitted a fix for this.",
+                },
+                {
+                    "user": {"login": "maintainer-alice"},
+                    "body": "Can you add a test for the edge case?",
+                },
+                {
+                    "user": {"login": "contributor-bob"},
+                    "body": "I also hit this bug.",
+                },
+            ]
+        ),
         stderr="",
     )
 

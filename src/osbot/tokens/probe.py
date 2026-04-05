@@ -31,8 +31,13 @@ _CRED_PATHS = [
 
 # Common keys the token might be stored under
 _TOKEN_KEYS = [
-    "oauth_token", "oauthToken", "access_token", "accessToken",
-    "token", "bearerToken", "bearer_token",
+    "oauth_token",
+    "oauthToken",
+    "access_token",
+    "accessToken",
+    "token",
+    "bearerToken",
+    "bearer_token",
 ]
 
 _client: httpx.AsyncClient | None = None
@@ -154,8 +159,13 @@ async def probe(oauth_token: str | None = None) -> UsageSnapshot | None:
 # Expiry keys the token expiration might be stored under
 # ---------------------------------------------------------------------------
 _EXPIRY_KEYS = [
-    "expiresAt", "expires_at", "expiry", "exp",
-    "token_expiry", "tokenExpiry", "expires",
+    "expiresAt",
+    "expires_at",
+    "expiry",
+    "exp",
+    "token_expiry",
+    "tokenExpiry",
+    "expires",
 ]
 
 
@@ -283,6 +293,7 @@ async def check_token_expiry(alert_email: str | None = None) -> None:
                 _expiry_alert_sent["expired"] = True
 
                 from osbot.comms.email import send_email
+
                 await send_email(
                     to=email,
                     subject="[osbot] CRITICAL: OAuth token is expired or invalid",
@@ -314,6 +325,7 @@ async def check_token_expiry(alert_email: str | None = None) -> None:
         _expiry_alert_sent["expired"] = True
 
         from osbot.comms.email import send_email
+
         await send_email(
             to=email,
             subject="[osbot] CRITICAL: OAuth token has EXPIRED",
@@ -338,6 +350,7 @@ async def check_token_expiry(alert_email: str | None = None) -> None:
 
         hours_int = int(hours_remaining)
         from osbot.comms.email import send_email
+
         await send_email(
             to=email,
             subject=f"[osbot] OAuth token expires in {hours_int}h -- re-authenticate required",

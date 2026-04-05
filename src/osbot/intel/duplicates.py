@@ -77,9 +77,7 @@ async def detect_duplicates(
     return bool(await _check_own_prs(repo, issue_number, github))
 
 
-async def _check_timeline(
-    owner: str, name: str, issue_number: int, github: GitHubCLIProtocol
-) -> bool:
+async def _check_timeline(owner: str, name: str, issue_number: int, github: GitHubCLIProtocol) -> bool:
     """Check if the issue timeline has cross-references to open PRs."""
     query = """
     query($owner: String!, $repo: String!, $number: Int!) {
@@ -139,22 +137,28 @@ async def _check_timeline(
     return False
 
 
-async def _check_own_prs(
-    repo: str, issue_number: int, github: GitHubCLIProtocol
-) -> bool:
+async def _check_own_prs(repo: str, issue_number: int, github: GitHubCLIProtocol) -> bool:
     """Check if the bot already has an open PR for this issue."""
     bot_username = settings.github_username
     if not bot_username:
         return False
 
-    result = await github.run_gh([
-        "pr", "list",
-        "--repo", repo,
-        "--author", bot_username,
-        "--state", "open",
-        "--json", "number,title,body,url",
-        "--limit", "50",
-    ])
+    result = await github.run_gh(
+        [
+            "pr",
+            "list",
+            "--repo",
+            repo,
+            "--author",
+            bot_username,
+            "--state",
+            "open",
+            "--json",
+            "number,title,body,url",
+            "--limit",
+            "50",
+        ]
+    )
     if not result.success:
         return False
 
@@ -211,9 +215,7 @@ def check_claimed_in_comments(
     for comment in comments:
         # Skip our own comments
         author_login = (
-            comment.get("author", {}).get("login", "")
-            if isinstance(comment.get("author"), dict)
-            else ""
+            comment.get("author", {}).get("login", "") if isinstance(comment.get("author"), dict) else ""
         ).lower()
         if effective_bot and author_login == effective_bot:
             continue

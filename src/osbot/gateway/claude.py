@@ -109,9 +109,7 @@ class ClaudeGateway:
         loop = asyncio.get_running_loop()
         while len(self._consumer_tasks) < self._max_concurrent:
             idx = len(self._consumer_tasks)
-            task = loop.create_task(
-                self._consumer(idx), name=f"claude-gateway-consumer-{idx}"
-            )
+            task = loop.create_task(self._consumer(idx), name=f"claude-gateway-consumer-{idx}")
             self._consumer_tasks.append(task)
 
     async def shutdown(self) -> None:
@@ -134,14 +132,16 @@ class ClaudeGateway:
             try:
                 item = self._queue.get_nowait()
                 if not item.future.done():
-                    item.future.set_result(AgentResult(
-                        success=False,
-                        text="",
-                        tool_trace=[],
-                        error="gateway_shutdown",
-                        tokens_used=0,
-                        model=item.kwargs.get("model", ""),
-                    ))
+                    item.future.set_result(
+                        AgentResult(
+                            success=False,
+                            text="",
+                            tool_trace=[],
+                            error="gateway_shutdown",
+                            tokens_used=0,
+                            model=item.kwargs.get("model", ""),
+                        )
+                    )
             except asyncio.QueueEmpty:
                 break
 
@@ -171,14 +171,16 @@ class ClaudeGateway:
                         item.future.set_result(result)
                 except Exception as exc:
                     if not item.future.done():
-                        item.future.set_result(AgentResult(
-                            success=False,
-                            text="",
-                            tool_trace=[],
-                            error=str(exc),
-                            tokens_used=0,
-                            model=item.kwargs.get("model", ""),
-                        ))
+                        item.future.set_result(
+                            AgentResult(
+                                success=False,
+                                text="",
+                                tool_trace=[],
+                                error=str(exc),
+                                tokens_used=0,
+                                model=item.kwargs.get("model", ""),
+                            )
+                        )
                 finally:
                     self._queue.task_done()
         except asyncio.CancelledError:
@@ -317,20 +319,19 @@ class ClaudeGateway:
                         result_text = event.result or ""
                         usage = event.usage or {}
                         if isinstance(usage, dict):
-                            tokens_used = (
-                                usage.get("input_tokens", 0)
-                                + usage.get("output_tokens", 0)
-                            )
+                            tokens_used = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
 
                     elif isinstance(event, SDKAssistantMessage):
-                        for block in (event.content or []):
+                        for block in event.content or []:
                             if hasattr(block, "text"):
                                 assistant_texts.append(block.text)
                             elif hasattr(block, "name"):
-                                tool_trace.append({
-                                    "tool": block.name,
-                                    "input": getattr(block, "input", {}),
-                                })
+                                tool_trace.append(
+                                    {
+                                        "tool": block.name,
+                                        "input": getattr(block, "input", {}),
+                                    }
+                                )
 
                 # Use assistant text if result text is empty
                 if not result_text and assistant_texts:
@@ -389,6 +390,7 @@ class ClaudeGateway:
             if "401" in error_str or "expired" in error_str.lower() or "authenticate" in error_str.lower():
                 try:
                     from osbot.comms.blocker import notify_blocker
+
                     _loop = asyncio.get_running_loop()
                     _loop.create_task(notify_blocker("auth_expired"))
                 except Exception:

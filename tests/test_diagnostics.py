@@ -94,10 +94,7 @@ async def test_timeout_warning_at_2(mock_alert: AsyncMock) -> None:
 @patch("osbot.comms.webhook.send_alert", new_callable=AsyncMock, return_value=True)
 async def test_dead_cycle_detection(mock_alert: AsyncMock) -> None:
     """15+ traces with 0 submissions should trigger a force_discovery correction."""
-    traces = [
-        _make_trace(outcome="error", failure_reason=f"error_{i}")
-        for i in range(16)
-    ]
+    traces = [_make_trace(outcome="error", failure_reason=f"error_{i}") for i in range(16)]
     corrections = await fast_diagnostic(traces)
     force_corrections = [c for c in corrections if c.type == "force_discovery"]
     assert len(force_corrections) >= 1

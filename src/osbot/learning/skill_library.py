@@ -20,16 +20,16 @@ logger = get_logger(__name__)
 
 # Maps pattern name -> list of substrings to look for in the diff
 _DIFF_PATTERNS: dict[str, list[str]] = {
-    "null_check":       ["is None", "is not None", "!= None", "== None", "if not ", "Optional"],
-    "import_fix":       ["import ", "from ", "ImportError", "ModuleNotFoundError"],
-    "type_annotation":  [": int", ": str", ": float", ": bool", ": list", ": dict", "-> None", "-> str", "-> int"],
-    "off_by_one":       ["+ 1", "- 1", "<= ", ">= ", "range(", "[:-1]", "[1:]"],
-    "key_error":        ["KeyError", ".get(", "in dict", "setdefault"],
-    "attribute_error":  ["AttributeError", "hasattr", "getattr"],
-    "missing_default":  ["= None", "default=", "or ''", "or []", "or {}"],
+    "null_check": ["is None", "is not None", "!= None", "== None", "if not ", "Optional"],
+    "import_fix": ["import ", "from ", "ImportError", "ModuleNotFoundError"],
+    "type_annotation": [": int", ": str", ": float", ": bool", ": list", ": dict", "-> None", "-> str", "-> int"],
+    "off_by_one": ["+ 1", "- 1", "<= ", ">= ", "range(", "[:-1]", "[1:]"],
+    "key_error": ["KeyError", ".get(", "in dict", "setdefault"],
+    "attribute_error": ["AttributeError", "hasattr", "getattr"],
+    "missing_default": ["= None", "default=", "or ''", "or []", "or {}"],
     "wrong_comparison": ["== True", "== False", "is True", "is False", "!= ''", "== ''"],
-    "encoding_fix":     ["encoding=", "utf-8", "decode(", "encode("],
-    "config_fix":       ["config", "settings", ".env", "os.environ", "getenv"],
+    "encoding_fix": ["encoding=", "utf-8", "decode(", "encode("],
+    "config_fix": ["config", "settings", ".env", "os.environ", "getenv"],
 }
 
 
@@ -57,6 +57,7 @@ def _detect_pattern(diff: str) -> str:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 async def record_skill(
     repo: str,

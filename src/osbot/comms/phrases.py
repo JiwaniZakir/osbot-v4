@@ -127,14 +127,12 @@ _EXCESSIVE_PRAISE: list[str] = [
 
 # Flat list for public consumption.
 BANNED_PHRASES: list[str] = (
-    _GREETINGS + _FILLER + _STRUCTURE + _META + _HEDGING + _CLOSING
-    + _EXCESSIVE_PRAISE + _PROMISES
+    _GREETINGS + _FILLER + _STRUCTURE + _META + _HEDGING + _CLOSING + _EXCESSIVE_PRAISE + _PROMISES
 )
 
 # Pre-compiled patterns (case-insensitive, word-boundary aware where practical).
 _PATTERNS: list[tuple[str, re.Pattern[str]]] = [
-    (phrase, re.compile(re.escape(phrase), re.IGNORECASE))
-    for phrase in BANNED_PHRASES
+    (phrase, re.compile(re.escape(phrase), re.IGNORECASE)) for phrase in BANNED_PHRASES
 ]
 
 

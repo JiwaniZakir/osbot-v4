@@ -30,7 +30,8 @@ async def _check_claude() -> bool:
 
     try:
         proc = await asyncio.create_subprocess_exec(
-            "claude", "--version",
+            "claude",
+            "--version",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -165,8 +166,9 @@ async def startup_check(
 
     # GitHub username validation (required for fork, push, duplicate detection)
     if not settings.github_username:
-        logger.error("health_github_username_empty",
-                     msg="OSBOT_GITHUB_USERNAME must be set. Fork/push/dedup all require it.")
+        logger.error(
+            "health_github_username_empty", msg="OSBOT_GITHUB_USERNAME must be set. Fork/push/dedup all require it."
+        )
         checks["github_username"] = False
     else:
         checks["github_username"] = True
@@ -175,6 +177,7 @@ async def startup_check(
     # OAuth token expiry check (non-blocking -- sends email alert if expiring)
     try:
         from osbot.tokens.probe import check_token_expiry
+
         await check_token_expiry()
         logger.info("health_token_expiry_checked")
     except Exception as exc:
@@ -190,6 +193,7 @@ async def startup_check(
 
         # Send webhook alert for health check failure
         from osbot.comms.webhook import send_alert
+
         await send_alert(
             f"Health check FAILED: {', '.join(failed)}. Bot will not start.",
             severity="critical",

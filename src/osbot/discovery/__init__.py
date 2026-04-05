@@ -56,8 +56,7 @@ async def discover(
     active_pool: list[RepoMeta] = []
     for signals_computed, candidate in enumerate(candidates):
         if signals_computed >= MAX_SIGNALS_PER_CYCLE:
-            logger.info("signals_rate_limited", computed=signals_computed,
-                        remaining=len(candidates) - signals_computed)
+            logger.info("signals_rate_limited", computed=signals_computed, remaining=len(candidates) - signals_computed)
             break
 
         signals = await compute_signals(candidate, github, db)
@@ -105,7 +104,7 @@ async def discover(
                 new_names.add(repo.full_name)
         # Shuffle so we rotate through the full DB pool across cycles.
         random.shuffle(active_pool)
-        active_pool = active_pool[:settings.active_pool_max]
+        active_pool = active_pool[: settings.active_pool_max]
         logger.info("discovery_pool_after_db_supplement", count=len(active_pool))
 
     # Step 5: Find issues in active pool
@@ -122,9 +121,7 @@ async def discover(
         if repo_meta is None:
             # Fallback: find matching repo in active pool
             repo_name = issue_data.get("repo", "")
-            repo_meta = next(
-                (r for r in active_pool if r.full_name == repo_name), None
-            )
+            repo_meta = next((r for r in active_pool if r.full_name == repo_name), None)
         if repo_meta is None:
             continue
 
@@ -203,21 +200,23 @@ async def _load_active_pool_from_db(db: MemoryDBProtocol) -> list[RepoMeta]:
         if score < settings.repo_score_threshold:
             continue
 
-        result.append(RepoMeta(
-            owner=owner,
-            name=name,
-            language="",
-            stars=0,
-            description="",
-            topics=[],
-            requires_assignment=bool(row.get("requires_assignment")),
-            has_ai_policy=False,
-            ci_enabled=ci,
-            external_merge_rate=emr,
-            avg_response_hours=resp,
-            close_completion_rate=cc,
-            score=score,
-        ))
+        result.append(
+            RepoMeta(
+                owner=owner,
+                name=name,
+                language="",
+                stars=0,
+                description="",
+                topics=[],
+                requires_assignment=bool(row.get("requires_assignment")),
+                has_ai_policy=False,
+                ci_enabled=ci,
+                external_merge_rate=emr,
+                avg_response_hours=resp,
+                close_completion_rate=cc,
+                score=score,
+            )
+        )
 
     return result
 

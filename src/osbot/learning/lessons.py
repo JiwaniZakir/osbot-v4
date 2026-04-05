@@ -77,10 +77,7 @@ async def on_merge(repo: str, issue_number: int, db: MemoryDBProtocol) -> str | 
 
     # Prefer the submitted record for this issue (has the full summary).
     # Fall back to any recent summary with content.
-    submitted = [
-        s for s in summaries
-        if s.get("outcome") in ("submitted", "merged") and s.get("summary")
-    ]
+    submitted = [s for s in summaries if s.get("outcome") in ("submitted", "merged") and s.get("summary")]
     if not submitted:
         return None
 
@@ -160,8 +157,7 @@ async def on_rejection(repo: str, issue_number: int, reason: str, db: MemoryDBPr
     if hasattr(db, "rebuild_fact_index"):
         await db.rebuild_fact_index(repo)
 
-    logger.info("lesson_extracted", repo=repo, type="negative",
-                rejection_count=rejection_count, lesson=lesson[:100])
+    logger.info("lesson_extracted", repo=repo, type="negative", rejection_count=rejection_count, lesson=lesson[:100])
     return lesson
 
 

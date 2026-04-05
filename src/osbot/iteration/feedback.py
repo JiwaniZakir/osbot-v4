@@ -35,13 +35,17 @@ _TYPE_MAP: dict[str, FeedbackType] = {
 }
 
 _NO_ACTION = FeedbackResult(
-    feedback_type=FeedbackType.QUESTION, actions=[],
-    should_respond=False, should_patch=False,
+    feedback_type=FeedbackType.QUESTION,
+    actions=[],
+    should_respond=False,
+    should_patch=False,
 )
 
 
 async def read_feedback(
-    pr: OpenPR, comments: list[dict[str, Any]], gateway: ClaudeGatewayProtocol,
+    pr: OpenPR,
+    comments: list[dict[str, Any]],
+    gateway: ClaudeGatewayProtocol,
 ) -> FeedbackResult:
     """Classify maintainer feedback and extract action items (Call #4).
 
@@ -55,10 +59,7 @@ async def read_feedback(
     # caller (monitor.py) already did so.  Prevents self-referencing loops.
     bot_login = settings.github_username.lower()
     if bot_login:
-        comments = [
-            c for c in comments
-            if (c.get("author") or {}).get("login", "").lower() != bot_login
-        ]
+        comments = [c for c in comments if (c.get("author") or {}).get("login", "").lower() != bot_login]
         if not comments:
             return _NO_ACTION
 
@@ -68,7 +69,7 @@ async def read_feedback(
         f"FEEDBACK:\n{formatted}\n\n"
         "Classify into exactly one type: request_changes, style_feedback, question, "
         "approval_pending_minor, rejection_with_reason, ci_failure.\n\n"
-        'Respond with valid JSON only:\n'
+        "Respond with valid JSON only:\n"
         '{"type": "<type>", "summary": "<one sentence>", '
         '"actions": [{"summary": "<what>", "file_path": "<file or null>", '
         '"line_number": <int or null>, "details": "<specifics>"}], '
@@ -76,8 +77,11 @@ async def read_feedback(
     )
 
     result = await gateway.invoke(
-        prompt, phase=Phase.ITERATE, model=settings.feedback_reader_model,
-        allowed_tools=[], cwd="/tmp",
+        prompt,
+        phase=Phase.ITERATE,
+        model=settings.feedback_reader_model,
+        allowed_tools=[],
+        cwd="/tmp",
         timeout=settings.feedback_reader_timeout_sec,
         priority=Priority.FEEDBACK_RESPONSE,
         max_turns=1,
@@ -86,8 +90,10 @@ async def read_feedback(
     if not result.success:
         logger.warning("feedback_reader_failed", repo=pr.repo, pr=pr.pr_number, error=result.error)
         return FeedbackResult(
-            feedback_type=FeedbackType.QUESTION, actions=[],
-            should_respond=True, should_patch=False,
+            feedback_type=FeedbackType.QUESTION,
+            actions=[],
+            should_respond=True,
+            should_patch=False,
         )
 
     return _parse_result(result.text)
@@ -138,25 +144,33 @@ def _parse_result(text: str) -> FeedbackResult:
     except json.JSONDecodeError:
         logger.warning("feedback_parse_failed", text=text[:200])
         return FeedbackResult(
-            feedback_type=FeedbackType.QUESTION, actions=[],
-            should_respond=True, should_patch=False,
+            feedback_type=FeedbackType.QUESTION,
+            actions=[],
+            should_respond=True,
+            should_patch=False,
         )
 
     ft = _TYPE_MAP.get(data.get("type", "question"), FeedbackType.QUESTION)
     actions = [
         FeedbackAction(
-            feedback_type=ft, summary=a.get("summary", ""),
-            file_path=a.get("file_path"), line_number=a.get("line_number"),
+            feedback_type=ft,
+            summary=a.get("summary", ""),
+            file_path=a.get("file_path"),
+            line_number=a.get("line_number"),
             details=a.get("details", ""),
         )
         for a in data.get("actions", [])
     ]
     should_patch = ft in (
-        FeedbackType.REQUEST_CHANGES, FeedbackType.STYLE_FEEDBACK,
-        FeedbackType.APPROVAL_PENDING_MINOR, FeedbackType.CI_FAILURE,
+        FeedbackType.REQUEST_CHANGES,
+        FeedbackType.STYLE_FEEDBACK,
+        FeedbackType.APPROVAL_PENDING_MINOR,
+        FeedbackType.CI_FAILURE,
     )
     return FeedbackResult(
-        feedback_type=ft, actions=actions,
-        should_respond=True, should_patch=should_patch,
+        feedback_type=ft,
+        actions=actions,
+        should_respond=True,
+        should_patch=should_patch,
         is_terminal=data.get("is_terminal", False),
     )

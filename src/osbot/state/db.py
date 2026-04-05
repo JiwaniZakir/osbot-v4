@@ -174,8 +174,16 @@ class MemoryDB:
                                   tokens_used, iteration_count, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (repo, issue_number, pr_number, outcome.value, failure_reason,
-             tokens_used, iteration_count, self._utcnow()),
+            (
+                repo,
+                issue_number,
+                pr_number,
+                outcome.value,
+                failure_reason,
+                tokens_used,
+                iteration_count,
+                self._utcnow(),
+            ),
         )
 
     async def is_repo_banned(self, repo: str) -> bool:
@@ -279,8 +287,17 @@ class MemoryDB:
                                   tokens_used, iteration_count, summary, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (repo, issue_number, pr_number, outcome.value, failure_reason,
-             tokens_used, iteration_count, summary, self._utcnow()),
+            (
+                repo,
+                issue_number,
+                pr_number,
+                outcome.value,
+                failure_reason,
+                tokens_used,
+                iteration_count,
+                summary,
+                self._utcnow(),
+            ),
         )
 
     async def get_recent_summaries(self, repo: str, limit: int = 5) -> list[dict[str, Any]]:
@@ -297,9 +314,7 @@ class MemoryDB:
 
     # -- prompt variant meta-learning ------------------------------------------
 
-    async def get_best_variant(
-        self, section: str, repo_type: str = "general"
-    ) -> dict[str, Any] | None:
+    async def get_best_variant(self, section: str, repo_type: str = "general") -> dict[str, Any] | None:
         """Return the active variant with the highest success_rate for *section*.
 
         Falls back to ``general`` repo_type if no repo-specific variant exists.
@@ -329,9 +344,7 @@ class MemoryDB:
             )
         return None
 
-    async def get_all_variants(
-        self, section: str, repo_type: str = "general"
-    ) -> list[dict[str, Any]]:
+    async def get_all_variants(self, section: str, repo_type: str = "general") -> list[dict[str, Any]]:
         """Return all active variants for *section*, falling back to general."""
         rows = await self.fetchall(
             """
@@ -359,9 +372,7 @@ class MemoryDB:
             (variant_id,),
         )
 
-    async def update_variant_stats(
-        self, section: str, variant_name: str, success: bool
-    ) -> None:
+    async def update_variant_stats(self, section: str, variant_name: str, success: bool) -> None:
         """Update success statistics for a prompt variant.
 
         Increments ``times_success`` if *success*, then recomputes ``success_rate``
@@ -697,8 +708,7 @@ class MemoryDB:
                      confidence, success_rate, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, 0.0, ?, ?)
                 """,
-                (lesson_type, lesson_text, repos_json, outcome_ids_json,
-                 confidence, now, now),
+                (lesson_type, lesson_text, repos_json, outcome_ids_json, confidence, now, now),
             )
 
     # -- Skill library (Voyager-style) ----------------------------------------
@@ -724,8 +734,7 @@ class MemoryDB:
                  diff_summary, title, used_count, led_to_success, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)
             """,
-            (repo, issue_number, issue_type, language, pattern,
-             diff_summary, title, self._utcnow()),
+            (repo, issue_number, issue_type, language, pattern, diff_summary, title, self._utcnow()),
         )
 
     async def get_relevant_skills(

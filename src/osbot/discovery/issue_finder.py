@@ -48,9 +48,20 @@ _TARGET_LABELS: list[str] = ["bug", "help wanted", "good first issue"]
 
 # Keywords for client-side filtering (applied to title + body after fetching).
 _QUALITY_KEYWORDS: list[str] = [
-    "typo", "broken link", "missing import", "deprecat",
-    "wrong type", "incorrect", "error message", "regression",
-    "unused", "dead code", "fix", "null", "crash", "exception",
+    "typo",
+    "broken link",
+    "missing import",
+    "deprecat",
+    "wrong type",
+    "incorrect",
+    "error message",
+    "regression",
+    "unused",
+    "dead code",
+    "fix",
+    "null",
+    "crash",
+    "exception",
 ]
 
 # Freshness thresholds.
@@ -156,9 +167,7 @@ async def find_issues(
     return all_issues
 
 
-async def _fetch_repo_issues(
-    repo: str, github: GitHubCLIProtocol
-) -> list[dict[str, Any]]:
+async def _fetch_repo_issues(repo: str, github: GitHubCLIProtocol) -> list[dict[str, Any]]:
     """Fetch open issues from a repo using ONE ``gh issue list`` call.
 
     Uses the Issues API (5000/hr limit), NOT the Search API (30/min limit).
@@ -170,13 +179,20 @@ async def _fetch_repo_issues(
     # "label:bug label:\"help wanted\"" is AND in GitHub search.
     # Instead, fetch recent open issues (no label filter) and filter client-side.
     # This is 1 API call per repo and gives us the broadest coverage.
-    result = await github.run_gh([
-        "issue", "list",
-        "--repo", repo,
-        "--state", "open",
-        "--limit", "30",
-        "--json", "number,title,body,labels,url,createdAt,updatedAt",
-    ])
+    result = await github.run_gh(
+        [
+            "issue",
+            "list",
+            "--repo",
+            repo,
+            "--state",
+            "open",
+            "--limit",
+            "30",
+            "--json",
+            "number,title,body,labels,url,createdAt,updatedAt",
+        ]
+    )
 
     if not result.success:
         logger.debug("issue_fetch_failed", repo=repo, stderr=result.stderr[:200])
@@ -190,9 +206,7 @@ async def _fetch_repo_issues(
     return issues
 
 
-def _prescore_candidates(
-    candidates: list[tuple[RepoMeta, dict[str, Any]]]
-) -> list[tuple[RepoMeta, dict[str, Any]]]:
+def _prescore_candidates(candidates: list[tuple[RepoMeta, dict[str, Any]]]) -> list[tuple[RepoMeta, dict[str, Any]]]:
     """Quick client-side scoring to pick the best candidates for enrichment.
 
     This avoids spending GraphQL budget on low-quality issues.
@@ -267,8 +281,7 @@ def _quick_score(issue: dict[str, Any]) -> float:
 
     # Good labels
     labels = {
-        (label.get("name", "") if isinstance(label, dict) else str(label)).lower()
-        for label in issue.get("labels", [])
+        (label.get("name", "") if isinstance(label, dict) else str(label)).lower() for label in issue.get("labels", [])
     }
     if "bug" in labels:
         score += 1.0
@@ -293,8 +306,14 @@ def _quick_score(issue: dict[str, Any]) -> float:
 
     # Investigation/research keywords in title: strong signal of non-implementability
     _INVESTIGATION_TITLE_KW = {
-        "investigate", "research", "explore", "understand",
-        "analyze", "analysis", "look into", "figure out",
+        "investigate",
+        "research",
+        "explore",
+        "understand",
+        "analyze",
+        "analysis",
+        "look into",
+        "figure out",
     }
     if any(kw in title for kw in _INVESTIGATION_TITLE_KW):
         score -= 2.0
@@ -348,9 +367,7 @@ async def _enrich_issue(
         return None
 
     # Extract labels
-    labels: list[str] = [
-        node.get("name", "") for node in detail.get("labels", {}).get("nodes", [])
-    ]
+    labels: list[str] = [node.get("name", "") for node in detail.get("labels", {}).get("nodes", [])]
 
     # Detect maintainer confirmation from comments
     maintainer_confirmed = False
@@ -360,11 +377,20 @@ async def _enrich_issue(
         assoc = (comment.get("authorAssociation") or "").upper()
         if assoc in ("MEMBER", "OWNER", "COLLABORATOR"):
             body_lower = (comment.get("body") or "").lower()
-            if any(kw in body_lower for kw in (
-                "confirmed", "reproduced", "can reproduce",
-                "this is a bug", "valid bug", "good catch",
-                "yes, this is", "verified", "can confirm",
-            )):
+            if any(
+                kw in body_lower
+                for kw in (
+                    "confirmed",
+                    "reproduced",
+                    "can reproduce",
+                    "this is a bug",
+                    "valid bug",
+                    "good catch",
+                    "yes, this is",
+                    "verified",
+                    "can confirm",
+                )
+            ):
                 maintainer_confirmed = True
                 break
 
@@ -382,8 +408,7 @@ async def _enrich_issue(
     # Detect error traces and code blocks in body
     body = detail.get("body") or base_data.get("body", "")
     has_error_trace = bool(
-        "Traceback" in body or "Error:" in body or "Exception:" in body
-        or "stack trace" in body.lower()
+        "Traceback" in body or "Error:" in body or "Exception:" in body or "stack trace" in body.lower()
     )
     has_code_block = "```" in body
 

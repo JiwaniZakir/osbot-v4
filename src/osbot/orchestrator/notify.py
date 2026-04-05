@@ -34,11 +34,16 @@ async def _fetch_mentions(github: GitHubCLIProtocol) -> list[dict[str, Any]]:
 
     Uses ``gh api notifications`` and filters for mentions.
     """
-    result = await github.run_gh([
-        "api", "notifications",
-        "--method", "GET",
-        "-f", "all=false",
-    ])
+    result = await github.run_gh(
+        [
+            "api",
+            "notifications",
+            "--method",
+            "GET",
+            "-f",
+            "all=false",
+        ]
+    )
     if not result.success:
         logger.debug("notify_fetch_failed", stderr=result.stderr[:200])
         return []
@@ -52,10 +57,7 @@ async def _fetch_mentions(github: GitHubCLIProtocol) -> list[dict[str, Any]]:
         return []
 
     # Filter for mentions only (unread notifications where reason is "mention")
-    mentions = [
-        n for n in notifications
-        if n.get("reason") == "mention" and n.get("unread", False) is True
-    ]
+    mentions = [n for n in notifications if n.get("reason") == "mention" and n.get("unread", False) is True]
 
     return mentions
 
@@ -113,12 +115,18 @@ async def _get_thread_context(
             # Extract base comments URL from specific comment URL
             comments_url = comments_url.rsplit("/comments/", 1)[0] + "/comments"
 
-        result = await github.run_gh([
-            "api", comments_url,
-            "--method", "GET",
-            "-f", "per_page=10",
-            "-f", "direction=desc",
-        ])
+        result = await github.run_gh(
+            [
+                "api",
+                comments_url,
+                "--method",
+                "GET",
+                "-f",
+                "per_page=10",
+                "-f",
+                "direction=desc",
+            ]
+        )
         if result.success:
             try:
                 comments = json.loads(result.stdout)
@@ -160,7 +168,11 @@ def _build_notify_prompt(context: dict[str, Any]) -> str:
             comment_lines.append(f"  @{author}: {cbody}")
         comments_text = "\nRecent comments:\n" + "\n".join(comment_lines)
 
-    bot_note = f"Your GitHub username is {settings.github_username}. Do not reference or quote your own previous comments.\n" if settings.github_username else ""
+    bot_note = (
+        f"Your GitHub username is {settings.github_username}. Do not reference or quote your own previous comments.\n"
+        if settings.github_username
+        else ""
+    )
 
     return (
         f"You were mentioned in a GitHub {thread_type}. Write a response.\n"
@@ -175,7 +187,7 @@ def _build_notify_prompt(context: dict[str, Any]) -> str:
         f"- If asked a technical question, give a concrete answer\n"
         f"- If tagged to review something, provide a substantive observation\n"
         f"- Do NOT use greetings, praise, or closing pleasantries\n"
-        f"- Do NOT say 'I\'d be happy to' or 'Great question' or any AI filler\n"
+        f"- Do NOT say 'I'd be happy to' or 'Great question' or any AI filler\n"
         f"- Write as a developer responding to a colleague\n"
         f"- Output ONLY the response text, no preamble"
     )
@@ -199,18 +211,30 @@ async def _post_response(
         return False
 
     if thread_type == "PullRequest":
-        result = await github.run_gh([
-            "pr", "comment", str(number),
-            "--repo", repo,
-            "--body", response_text,
-        ])
+        result = await github.run_gh(
+            [
+                "pr",
+                "comment",
+                str(number),
+                "--repo",
+                repo,
+                "--body",
+                response_text,
+            ]
+        )
     else:
         # Default to issue comment
-        result = await github.run_gh([
-            "issue", "comment", str(number),
-            "--repo", repo,
-            "--body", response_text,
-        ])
+        result = await github.run_gh(
+            [
+                "issue",
+                "comment",
+                str(number),
+                "--repo",
+                repo,
+                "--body",
+                response_text,
+            ]
+        )
 
     return result.success
 
@@ -222,10 +246,14 @@ async def _mark_notification_read(
     """Mark a notification thread as read."""
     if not thread_id:
         return
-    result = await github.run_gh([
-        "api", "-X", "PATCH",
-        f"notifications/threads/{thread_id}",
-    ])
+    result = await github.run_gh(
+        [
+            "api",
+            "-X",
+            "PATCH",
+            f"notifications/threads/{thread_id}",
+        ]
+    )
     if not result.success:
         logger.debug("notify_mark_read_failed", thread_id=thread_id)
 

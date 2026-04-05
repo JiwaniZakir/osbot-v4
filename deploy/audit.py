@@ -39,11 +39,11 @@ FIVE_HOUR_CEILING: float = float(os.environ.get("OSBOT_FIVE_HOUR_CEILING", "0.60
 SEVEN_DAY_CEILING: float = float(os.environ.get("OSBOT_SEVEN_DAY_CEILING", "0.50"))
 OPUS_CEILING: float = float(os.environ.get("OSBOT_OPUS_CEILING", "0.40"))
 
-TIMEOUT_BAN_THRESHOLD: int = 3     # ban repo after this many timeouts in 7d
-TIMEOUT_BAN_DAYS: int = 7          # ban duration in days
-TOKEN_HIGH_WARN: float = 0.85      # fraction of ceiling that triggers WARN-HIGH
-TOKEN_CRITICAL: float = 0.95       # fraction of ceiling that triggers CRITICAL (exit 2)
-TOKEN_LOW_WARN: float = 0.05       # absolute utilisation below which we suspect a stall
+TIMEOUT_BAN_THRESHOLD: int = 3  # ban repo after this many timeouts in 7d
+TIMEOUT_BAN_DAYS: int = 7  # ban duration in days
+TOKEN_HIGH_WARN: float = 0.85  # fraction of ceiling that triggers WARN-HIGH
+TOKEN_CRITICAL: float = 0.95  # fraction of ceiling that triggers CRITICAL (exit 2)
+TOKEN_LOW_WARN: float = 0.05  # absolute utilisation below which we suspect a stall
 
 # ---------------------------------------------------------------------------
 # Shared state for this run
@@ -84,11 +84,7 @@ def _ago(iso: str) -> str:
 
 
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
-    return bool(
-        conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
-        ).fetchone()
-    )
+    return bool(conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone())
 
 
 # ---------------------------------------------------------------------------
@@ -96,13 +92,13 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
 # ---------------------------------------------------------------------------
 
 _PHASES = [
-    ("preflight_passed",         "Preflight    "),
+    ("preflight_passed", "Preflight    "),
     ("implementation_completed", "Implement    "),
-    ("tests_pass",               "Tests        "),
-    ("diff_size_ok",             "Diff size    "),
-    ("scope_correct",            "Scope        "),
-    ("critic_approves",          "Critic       "),
-    ("pr_submitted",             "Submitted    "),
+    ("tests_pass", "Tests        "),
+    ("diff_size_ok", "Diff size    "),
+    ("scope_correct", "Scope        "),
+    ("critic_approves", "Critic       "),
+    ("pr_submitted", "Submitted    "),
 ]
 
 
@@ -113,9 +109,7 @@ def _phase_funnel(conn: sqlite3.Connection) -> list[str]:
         out.append("  (phase_checkpoints not found — migration may not have run yet)")
         return out
 
-    total: int = conn.execute(
-        "SELECT COUNT(*) FROM phase_checkpoints WHERE created_at > ?", (_24h_ago,)
-    ).fetchone()[0]
+    total: int = conn.execute("SELECT COUNT(*) FROM phase_checkpoints WHERE created_at > ?", (_24h_ago,)).fetchone()[0]
 
     if total == 0:
         out.append("  (no checkpoint rows in last 24h)")
@@ -155,17 +149,14 @@ def _token_headroom(conn: sqlite3.Connection) -> tuple[list[str], int]:
         return out, exit_code
 
     row = conn.execute(
-        "SELECT ts, five_hour, seven_day, opus_weekly, sonnet_weekly "
-        "FROM usage_snapshots ORDER BY ts DESC LIMIT 1"
+        "SELECT ts, five_hour, seven_day, opus_weekly, sonnet_weekly FROM usage_snapshots ORDER BY ts DESC LIMIT 1"
     ).fetchone()
 
     if not row:
         out.append("  (no snapshots recorded yet — token probe may not have run)")
         return out, exit_code
 
-    ts, five_h, seven_d, opus_w, sonnet_w = (
-        row[0], float(row[1]), float(row[2]), float(row[3]), float(row[4])
-    )
+    ts, five_h, seven_d, opus_w, sonnet_w = (row[0], float(row[1]), float(row[2]), float(row[3]), float(row[4]))
 
     def _status(val: float, ceiling: float) -> str:
         if not ceiling:
@@ -318,9 +309,7 @@ def _wasted_calls(conn: sqlite3.Connection) -> list[str]:
                     (repo, _now_str),
                 ).fetchone()
             )
-            action = "[already banned]" if already_banned else (
-                "→ will auto-ban" if n >= TIMEOUT_BAN_THRESHOLD else ""
-            )
+            action = "[already banned]" if already_banned else ("→ will auto-ban" if n >= TIMEOUT_BAN_THRESHOLD else "")
             out.append(f"    {n:3d}×  {repo:<40}  {action}")
 
     return out
@@ -339,9 +328,7 @@ def _auto_ban(conn: sqlite3.Connection) -> list[str]:
         return out
 
     # Prune expired bans first
-    deleted = conn.execute(
-        "DELETE FROM repo_bans WHERE expires_at < ?", (_now_str,)
-    ).rowcount
+    deleted = conn.execute("DELETE FROM repo_bans WHERE expires_at < ?", (_now_str,)).rowcount
     conn.commit()
     if deleted:
         out.append(f"  Pruned {deleted} expired ban(s).")
@@ -370,8 +357,7 @@ def _auto_ban(conn: sqlite3.Connection) -> list[str]:
             continue
         expires = (_now_utc + timedelta(days=TIMEOUT_BAN_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
         conn.execute(
-            "INSERT INTO repo_bans (repo, reason, banned_at, expires_at, created_by) "
-            "VALUES (?, ?, ?, ?, 'audit_cron')",
+            "INSERT INTO repo_bans (repo, reason, banned_at, expires_at, created_by) VALUES (?, ?, ?, ?, 'audit_cron')",
             (repo, f"auto-ban: {n} timeouts in 7d", _now_str, expires),
         )
         out.append(f"  BANNED {repo}  ({n} timeouts → {TIMEOUT_BAN_DAYS}d ban)")
@@ -411,20 +397,13 @@ def _learning_health(conn: sqlite3.Connection) -> list[str]:
     # Reflections
     if _table_exists(conn, "reflections"):
         row = conn.execute(
-            "SELECT COUNT(*), COALESCE(SUM(used_count),0), COALESCE(SUM(led_to_success),0) "
-            "FROM reflections"
+            "SELECT COUNT(*), COALESCE(SUM(used_count),0), COALESCE(SUM(led_to_success),0) FROM reflections"
         ).fetchone()
         total_r, total_used, led_ok = int(row[0]), int(row[1]), int(row[2])
-        new_7d = conn.execute(
-            "SELECT COUNT(*) FROM reflections WHERE created_at > ?", (_7d_ago,)
-        ).fetchone()[0]
-        out.append(
-            f"  Reflections : {total_r} total  +{new_7d} (7d)  "
-            f"{total_used}× retrieved  {led_ok} led to success"
-        )
+        new_7d = conn.execute("SELECT COUNT(*) FROM reflections WHERE created_at > ?", (_7d_ago,)).fetchone()[0]
+        out.append(f"  Reflections : {total_r} total  +{new_7d} (7d)  {total_used}× retrieved  {led_ok} led to success")
         phases = conn.execute(
-            "SELECT failure_phase, COUNT(*) FROM reflections "
-            "GROUP BY failure_phase ORDER BY 2 DESC"
+            "SELECT failure_phase, COUNT(*) FROM reflections GROUP BY failure_phase ORDER BY 2 DESC"
         ).fetchall()
         if phases:
             out.append("    by phase: " + "  ".join(f"{p}:{n}" for p, n in phases))
@@ -433,9 +412,7 @@ def _learning_health(conn: sqlite3.Connection) -> list[str]:
 
     # Meta-lessons
     if _table_exists(conn, "meta_lessons"):
-        row = conn.execute(
-            "SELECT COUNT(*), COALESCE(MAX(confidence), 0) FROM meta_lessons"
-        ).fetchone()
+        row = conn.execute("SELECT COUNT(*), COALESCE(MAX(confidence), 0) FROM meta_lessons").fetchone()
         out.append(f"  Meta-lessons: {row[0]} total  max confidence {float(row[1]):.2f}")
     else:
         out.append("  Meta-lessons: table not found")
@@ -443,17 +420,11 @@ def _learning_health(conn: sqlite3.Connection) -> list[str]:
     # Skill library
     if _table_exists(conn, "skills"):
         row = conn.execute(
-            "SELECT COUNT(*), COALESCE(SUM(led_to_success),0), COALESCE(SUM(used_count),0) "
-            "FROM skills"
+            "SELECT COUNT(*), COALESCE(SUM(led_to_success),0), COALESCE(SUM(used_count),0) FROM skills"
         ).fetchone()
         total_sk, sk_ok, sk_used = int(row[0]), int(row[1]), int(row[2])
-        new_7d_sk = conn.execute(
-            "SELECT COUNT(*) FROM skills WHERE created_at > ?", (_7d_ago,)
-        ).fetchone()[0]
-        out.append(
-            f"  Skills      : {total_sk} total  +{new_7d_sk} (7d)  "
-            f"{sk_ok} led to success  {sk_used}× retrieved"
-        )
+        new_7d_sk = conn.execute("SELECT COUNT(*) FROM skills WHERE created_at > ?", (_7d_ago,)).fetchone()[0]
+        out.append(f"  Skills      : {total_sk} total  +{new_7d_sk} (7d)  {sk_ok} led to success  {sk_used}× retrieved")
     else:
         out.append("  Skills      : table not found")
 
@@ -516,8 +487,7 @@ def _scope_analysis(conn: sqlite3.Connection) -> list[str]:
         )
         flag = "  [banned]" if banned else ""
         out.append(
-            f"  {repo:<38}  scope {_pct(scope_ok, total):<5}  "
-            f"submit {_pct(submitted, total):<5}  ({total} runs){flag}"
+            f"  {repo:<38}  scope {_pct(scope_ok, total):<5}  submit {_pct(submitted, total):<5}  ({total} runs){flag}"
         )
 
     return out
@@ -603,7 +573,7 @@ if __name__ == "__main__":
             f.write("\n".join(all_output) + "\n")
         if report_path.stat().st_size > 5 * 1024 * 1024:
             content = report_path.read_text()
-            report_path.write_text(content[-(4 * 1024 * 1024):])
+            report_path.write_text(content[-(4 * 1024 * 1024) :])
     except OSError as exc:
         print(f"[AUDIT] WARNING: could not write report file: {exc}", flush=True)
 
