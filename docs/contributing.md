@@ -37,3 +37,4 @@ pytest --cov=osbot --cov-report=term-missing  # with coverage
 - Gateway is always mocked; tests never call real Claude/GitHub
 - SQLite uses in-memory (`:memory:`) databases
 - `pytest-asyncio` with `asyncio_mode = "auto"`
+# Coverage target: raise to 35% by next Friday audit
