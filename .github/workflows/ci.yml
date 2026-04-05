@@ -44,7 +44,7 @@ jobs:
           cache: pip
       - run: pip install -e ".[dev]"
       - run: pytest tests/ --cov=osbot --cov-report=xml --cov-report=term-missing --cov-fail-under=30
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v6
         if: matrix.python-version == '3.12' && always()
         with:
           fail_ci_if_error: false
