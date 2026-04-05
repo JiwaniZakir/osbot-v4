@@ -192,12 +192,19 @@ jobs:
             const icons = { APPROVE: '\u2705', REFINE: '\uD83D\uDD27', REJECT: '\u274C' };
             const icon = icons[verdict.verdict] || '\u2753';
 
+            // Map verdict to GitHub review event
+            const reviewEvent = {
+              'APPROVE': 'APPROVE',
+              'REFINE': 'COMMENT',
+              'REJECT': 'REQUEST_CHANGES'
+            }[verdict.verdict] || 'COMMENT';
+
             await github.rest.pulls.createReview({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
               body: `## ${icon} Claude Quality Gate: ${verdict.verdict}\n\n${verdict.review_comment || ''}`,
-              event: verdict.verdict === 'REJECT' ? 'REQUEST_CHANGES' : 'COMMENT'
+              event: reviewEvent
             });
 
             if (verdict.verdict === 'REJECT') {
@@ -214,6 +221,12 @@ jobs:
                 state: 'closed'
               });
             }
+
+      - name: Enable auto-merge on APPROVE
+        if: steps.quality.outputs.verdict == 'APPROVE'
+        run: gh pr merge --auto --squash ${{ github.event.pull_request.number }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fail on REJECT
         if: steps.quality.outputs.verdict == 'REJECT'
