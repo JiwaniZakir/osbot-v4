@@ -19,7 +19,7 @@ jobs:
       pull-requests: write
       issues: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Restore Claude Max credentials
         run: |
           mkdir -p ~/.claude
