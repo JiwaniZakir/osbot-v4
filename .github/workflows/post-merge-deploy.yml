@@ -1,0 +1,74 @@
+name: Post-merge Deploy Trigger
+
+# Runs after any PR Quality Gate completes. If the gate APPROVED a PR targeting
+# main, waits for auto-merge to finish, then dispatches deploy-vps.yml.
+#
+# This workflow exists because:
+#  1. GitHub's anti-loop rule suppresses `push` and `pull_request: closed`
+#     events for commits made by GITHUB_TOKEN, so deploy-vps.yml can't
+#     trigger itself on bot-authored auto-merges.
+#  2. `workflow_run` events ARE fired for bot-authored originating runs, so
+#     this chain works without a PAT or GitHub App token.
+#  3. Polling cannot happen inside pr-quality-gate.yml itself — that job is
+#     one of the required checks, so it would deadlock waiting for a merge
+#     that can't happen until the job completes.
+
+on:
+  workflow_run:
+    workflows: ["PR Quality Gate"]
+    types: [completed]
+
+jobs:
+  dispatch-deploy:
+    name: Dispatch deploy-vps if PR merged to main
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Wait for auto-merge and dispatch deploy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Resolve the PR number from the originating run.
+          PR=$(gh api "repos/${REPO}/actions/runs/${RUN_ID}/pulls" --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            echo "No PR associated with run ${RUN_ID} — skipping."
+            exit 0
+          fi
+          echo "Originating PR: #${PR}"
+
+          BASE=$(gh pr view "$PR" --repo "$REPO" --json baseRefName --jq .baseRefName)
+          if [ "$BASE" != "main" ]; then
+            echo "PR targets $BASE, not main — no deploy needed."
+            exit 0
+          fi
+
+          # Poll up to 12 min for auto-merge to land. Auto-merge waits for
+          # all required checks (including the gate that spawned us), then
+          # squash-merges. 12 min is well above the typical 2-3 min spread
+          # between the first and last required check completing.
+          for _ in $(seq 1 144); do
+            STATE=$(gh pr view "$PR" --repo "$REPO" --json state --jq .state)
+            if [ "$STATE" = "MERGED" ]; then
+              echo "PR #${PR} merged — dispatching deploy-vps.yml on main"
+              gh workflow run deploy-vps.yml --repo "$REPO" --ref main
+              exit 0
+            fi
+            if [ "$STATE" = "CLOSED" ]; then
+              echo "PR #${PR} closed without merging — no deploy."
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "::warning::Timed out waiting for auto-merge on #${PR}. Run manually: gh workflow run deploy-vps.yml --ref main"

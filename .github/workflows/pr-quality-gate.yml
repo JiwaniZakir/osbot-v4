@@ -222,39 +222,11 @@ jobs:
               });
             }
 
-      - name: Enable auto-merge on APPROVE and dispatch deploy after merge
+      - name: Enable auto-merge on APPROVE
         if: steps.quality.outputs.verdict == 'APPROVE'
+        run: gh pr merge --auto --squash ${{ github.event.pull_request.number }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: |
-          set -euo pipefail
-          gh pr merge --auto --squash "$PR_NUMBER"
-
-          # Only main-targeting PRs need to trigger a deploy. Everything else
-          # (feature branches into dev, etc.) can exit here.
-          if [ "$BASE_REF" != "main" ]; then
-            echo "Base is $BASE_REF — no deploy trigger needed"
-            exit 0
-          fi
-
-          # Poll up to 10 min for auto-merge to finish. GitHub's anti-loop rule
-          # suppresses push / pull_request workflows triggered by commits made
-          # with GITHUB_TOKEN, so the merge would otherwise land silently
-          # without firing deploy-vps.yml. workflow_dispatch is explicitly
-          # permitted even under GITHUB_TOKEN, so we dispatch the deploy
-          # ourselves once the merge completes.
-          for _ in $(seq 1 120); do
-            STATE=$(gh pr view "$PR_NUMBER" --json state --jq .state)
-            if [ "$STATE" = "MERGED" ]; then
-              echo "PR #$PR_NUMBER merged — dispatching deploy-vps.yml on main"
-              gh workflow run deploy-vps.yml --ref main
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::warning::Timed out waiting for auto-merge on #$PR_NUMBER; deploy not dispatched. Trigger manually with: gh workflow run deploy-vps.yml --ref main"
 
       - name: Fail on REJECT
         if: steps.quality.outputs.verdict == 'REJECT'
