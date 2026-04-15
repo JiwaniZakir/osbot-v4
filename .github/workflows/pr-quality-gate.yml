@@ -109,7 +109,7 @@ jobs:
           result = subprocess.run(
               ['claude', '--dangerously-skip-permissions',
                '--output-format', 'json',
-               '--max-turns', '3',
+               '--max-turns', '10',
                '--print', prompt],
               capture_output=True, text=True, timeout=120
           )
@@ -135,7 +135,11 @@ jobs:
           with open('/tmp/verdict.json', 'w') as f:
               json.dump(verdict_data, f)
 
-          verdict = verdict_data.get('verdict', 'APPROVE')
+          verdict = verdict_data.get('verdict')
+          if verdict not in ('APPROVE', 'REFINE', 'REJECT'):
+              print(f"ERROR: invalid or missing verdict field: {verdict!r}")
+              print(f"Raw Claude output (first 2000 chars): {raw[:2000]}")
+              sys.exit(1)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
               f.write(f"verdict={verdict}\n")
           PYEOF
