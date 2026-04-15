@@ -53,8 +53,11 @@ async def reconcile_open_prs(state: BotState) -> int:
             "open",
             "--limit",
             "200",
+            # `gh search prs` doesn't expose headRefName; we default the branch
+            # to a synthetic fix/{number} placeholder — the iteration phase
+            # uses repo + pr_number, branch is informational only.
             "--json",
-            "number,repository,headRefName,createdAt",
+            "number,repository,createdAt",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -86,7 +89,7 @@ async def reconcile_open_prs(state: BotState) -> int:
         if (repo, number) in existing:
             continue
 
-        branch = pr.get("headRefName", f"fix/{number}")
+        branch = f"fix/{number}"
         submitted_at = pr.get("createdAt", datetime.now(UTC).isoformat())
         await state.add_open_pr(
             OpenPR(
