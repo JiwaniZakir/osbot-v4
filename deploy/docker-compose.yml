@@ -5,6 +5,10 @@ services:
       dockerfile: deploy/Dockerfile
     container_name: osbot-v4
     restart: unless-stopped
+    # Give the orchestrator up to 60s to finish the current cycle on SIGTERM.
+    # Signal handlers in src/osbot/orchestrator/loop.py set a shutdown flag,
+    # finish in-flight work, flush state.json + SQLite WAL, then exit cleanly.
+    stop_grace_period: 60s
     deploy:
       resources:
         limits:
@@ -39,4 +43,8 @@ volumes:
     external: true
     name: deploy_gh-config
   osbot-v4-state:
-    # Fresh volume for v4 (v3 state preserved in deploy_osbot-state)
+    # State volume — SQLite memory.db, state.json, traces/corrections JSONL.
+    # Marked external so `docker compose down -v` cannot destroy it.
+    # Bootstrap on a new host: `docker volume create deploy_osbot-v4-state`.
+    external: true
+    name: deploy_osbot-v4-state
