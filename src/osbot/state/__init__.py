@@ -9,6 +9,7 @@ Re-exports the three public components:
 
 from osbot.state.bot_state import BotState
 from osbot.state.db import MemoryDB
+from osbot.state.heartbeat import read_heartbeat, write_heartbeat
 from osbot.state.traces import TraceWriter
 
-__all__ = ["BotState", "MemoryDB", "TraceWriter"]
+__all__ = ["BotState", "MemoryDB", "TraceWriter", "read_heartbeat", "write_heartbeat"]

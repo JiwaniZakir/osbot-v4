@@ -20,6 +20,7 @@ import re
 import signal
 from dataclasses import replace as dataclass_replace
 from datetime import UTC, datetime
+from pathlib import Path
 
 from osbot.config import settings
 from osbot.discovery import discover
@@ -28,7 +29,7 @@ from osbot.iteration import apply_patch, check_prs, read_feedback
 from osbot.learning.diagnostics import deep_diagnostic, fast_diagnostic
 from osbot.log import get_logger
 from osbot.pipeline import run_pipeline
-from osbot.state import BotState, MemoryDB, TraceWriter
+from osbot.state import BotState, MemoryDB, TraceWriter, write_heartbeat
 from osbot.tokens import Balancer
 from osbot.types import Correction, FeedbackType, OpenPR, Outcome, Trace
 
@@ -908,6 +909,10 @@ async def run() -> None:
     cycle_count = 0
     force_discover = False
 
+    # Emit an initial heartbeat so the Docker liveness probe doesn't fail
+    # during the first cycle (which can take minutes).
+    write_heartbeat(Path(settings.state_dir), cycle_count)
+
     # -- Main loop (exits on shutdown signal or halt correction) --
     while not shutdown_requested.is_set():
         cycle_count += 1
@@ -1054,6 +1059,9 @@ async def run() -> None:
                 logger.error("phase_learn_error", cycle=cycle_count, error=str(exc))
 
         logger.info("cycle_end", cycle=cycle_count)
+
+        # Liveness heartbeat — healthcheck reads this to detect crash-loops.
+        write_heartbeat(Path(settings.state_dir), cycle_count)
 
         # -- Sleep until next cycle, but wake early on shutdown signal --
         try:
