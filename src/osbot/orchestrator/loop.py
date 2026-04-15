@@ -887,6 +887,17 @@ async def run() -> None:
     # Clear zombie active work from previous run
     await state.clear_active()
 
+    # Adopt orphan PRs — any bot-authored PR open on GitHub but missing from
+    # state.open_prs (e.g., created mid-cycle before state flush on prior run).
+    try:
+        from osbot.orchestrator.reconcile import reconcile_open_prs
+
+        adopted = await reconcile_open_prs(state)
+        if adopted:
+            logger.info("startup_reconcile_adopted", count=adopted)
+    except Exception as exc:
+        logger.warning("startup_reconcile_failed", error=str(exc))
+
     # Session 3: Seed default prompt variants if table is empty
     try:
         from osbot.learning.prompt_variants import seed_variants

@@ -6,8 +6,9 @@
 
 | Event | Example | Purpose |
 |---|---|---|
-| `pull_request: closed + merged` → `main` | Claude Quality Gate auto-merge, Dependabot auto-merge, human squash-merge | Primary trigger. `pull_request` events bypass the GitHub anti-loop rule that blocks `push` triggers on commits made by `github-actions[bot]`. |
-| `push` → `main` | Direct human push | Safety net. |
+| `workflow_dispatch` from `pr-quality-gate.yml` after auto-merge | Claude Quality Gate APPROVE → auto-merge → explicit dispatch | **Primary path for bot-authored merges.** GitHub's anti-loop rule suppresses both `push` and `pull_request: closed` events when a commit is made by `GITHUB_TOKEN`, so the Quality Gate dispatches the deploy itself once it confirms the merge landed. |
+| `pull_request: closed + merged` → `main` | Human merge via GitHub UI | Fires for human-initiated merges (human tokens aren't anti-looped). |
+| `push` → `main` | Direct human push | Safety net for bypass-branch-protection pushes. |
 | `workflow_dispatch` | `gh workflow run deploy-vps.yml --ref main` | Manual rollback / replay. |
 
 Concurrency key is `deploy-vps` with `cancel-in-progress: false` — two deploys cannot run in parallel; the second waits for the first to finish.
