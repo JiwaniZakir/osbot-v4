@@ -40,9 +40,11 @@ RUN mkdir -p state workspaces /home/botuser/.claude/session-env /home/botuser/.c
 # Default Claude settings
 RUN echo '{"model":"claude-sonnet-4-6"}' > /home/botuser/.claude/settings.json
 
-# Health check
+# Health check — liveness-gated via state/heartbeat.json written by the
+# orchestrator every cycle. Start-period gives the first cycle time to
+# write the initial heartbeat before failures start counting.
 COPY deploy/health_check.py ./deploy/health_check.py
-HEALTHCHECK --interval=60s --timeout=10s --retries=3 \
+HEALTHCHECK --interval=60s --timeout=10s --retries=3 --start-period=120s \
   CMD python3 /opt/osbot/deploy/health_check.py
 
 # Entrypoint
