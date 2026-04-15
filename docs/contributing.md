@@ -37,4 +37,7 @@ pytest --cov=osbot --cov-report=term-missing  # with coverage
 - Gateway is always mocked; tests never call real Claude/GitHub
 - SQLite uses in-memory (`:memory:`) databases
 - `pytest-asyncio` with `asyncio_mode = "auto"`
-# Coverage target: raise to 35% by next Friday audit
+
+### Coverage floor
+
+CI enforces `--cov-fail-under=30` today. Target floor: **35%** by 2026-05-15. To raise the gate, bump the value in `.github/workflows/ci.yml` (and `.github/workflows/ci-docker.yml`) in the same PR as the test additions that make it green.
