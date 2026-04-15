@@ -246,8 +246,8 @@ jobs:
           # permitted even under GITHUB_TOKEN, so we dispatch the deploy
           # ourselves once the merge completes.
           for _ in $(seq 1 120); do
-            MERGED=$(gh pr view "$PR_NUMBER" --json merged --jq .merged)
-            if [ "$MERGED" = "true" ]; then
+            STATE=$(gh pr view "$PR_NUMBER" --json state --jq .state)
+            if [ "$STATE" = "MERGED" ]; then
               echo "PR #$PR_NUMBER merged — dispatching deploy-vps.yml on main"
               gh workflow run deploy-vps.yml --ref main
               exit 0
