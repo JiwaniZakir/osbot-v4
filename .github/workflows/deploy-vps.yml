@@ -1,15 +1,33 @@
 name: Deploy to VPS
 
 on:
+  # Fires when a PR is merged into main — works for bot-authored auto-merges
+  # (pull_request events bypass the GITHUB_TOKEN anti-loop rule that blocks
+  # push triggers on commits made by github-actions[bot]).
+  pull_request:
+    types: [closed]
+    branches: [main]
+  # Manual dispatch for rollback / replay scenarios.
+  workflow_dispatch:
+  # Keep push as a safety net for direct human pushes to main.
   push:
     branches: [main]
-  workflow_dispatch:
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
 
 jobs:
   deploy:
     name: Deploy to Hetzner
-    if: github.repository == 'JiwaniZakir/osbot-v4'
+    if: |
+      github.repository == 'JiwaniZakir/osbot-v4' && (
+        github.event_name == 'workflow_dispatch' ||
+        github.event_name == 'push' ||
+        (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+      )
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: appleboy/ssh-action@v1
         with:
@@ -17,9 +35,55 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           passphrase: ${{ secrets.VPS_SSH_PASSPHRASE }}
+          command_timeout: 12m
           script: |
-            cd /opt/osbot-v4/deploy
-            git pull origin main
-            docker compose build --no-cache
-            docker compose up -d
-            echo "Deploy complete: $(docker ps --filter name=osbot-v4 --format '{{.Status}}')"
+            set -euo pipefail
+            cd /opt/osbot-v4
+
+            echo "== git pull =="
+            git fetch origin
+            git reset --hard origin/main
+            git log -1 --oneline
+
+            echo "== pre-deploy state snapshot =="
+            docker run --rm -v deploy_osbot-v4-state:/s alpine sh -c '
+              ls -la /s
+              if [ -f /s/state.json ]; then
+                echo "state.json size: $(wc -c < /s/state.json) bytes"
+                echo "issue_queue items: $(grep -c "\"number\":" /s/state.json 2>/dev/null || echo 0)"
+              fi
+              if [ -f /s/memory.db ]; then
+                echo "memory.db size: $(wc -c < /s/memory.db) bytes"
+              fi
+            '
+
+            echo "== build new image =="
+            cd deploy
+            docker compose build
+
+            echo "== graceful stop of running container =="
+            # Sends SIGTERM + waits up to 60s for orchestrator.loop to finish
+            # the current cycle and flush state (stop_grace_period in compose).
+            docker compose stop --timeout 60 || true
+
+            echo "== start with new image (named volumes preserved) =="
+            if ! docker compose up -d --wait --wait-timeout 120; then
+              echo "== DEPLOY FAILED — container did not become healthy =="
+              docker compose logs --tail=150 osbot
+              exit 1
+            fi
+
+            echo "== post-deploy verification =="
+            sleep 5
+            docker ps --filter name=osbot-v4 --format '{{.Names}} {{.Status}}'
+            echo "---last-20-log-lines---"
+            docker logs --tail 20 osbot-v4 2>&1
+
+            echo "== state preservation check =="
+            docker exec osbot-v4 sh -c '
+              ls -la /opt/osbot/state
+              test -f /opt/osbot/state/state.json && echo "state.json: PRESERVED" || echo "state.json: MISSING"
+              test -f /opt/osbot/state/memory.db  && echo "memory.db:  PRESERVED" || echo "memory.db:  MISSING"
+            '
+
+            echo "== deploy complete =="
