@@ -15,6 +15,7 @@ cycle, cancels remaining tasks, flushes state.json, and closes memory.db.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import re
 import signal
@@ -952,6 +953,18 @@ async def run() -> None:
             prefer_sonnet=balancer.should_prefer_sonnet,
         )
 
+        # Background heartbeat keeper: refreshes the heartbeat every 5 min
+        # so long-running phases (humanizer delays up to 45 min) don't trip
+        # the Docker healthcheck's 1200s staleness threshold.
+        _hb_state_dir = Path(settings.state_dir)
+
+        async def _heartbeat_keeper() -> None:
+            while True:
+                await asyncio.sleep(300)
+                write_heartbeat(_hb_state_dir, cycle_count)
+
+        keeper = asyncio.create_task(_heartbeat_keeper(), name="heartbeat-keeper")
+
         try:
             async with asyncio.TaskGroup() as tg:
                 # Monitor runs every cycle (no Claude)
@@ -1000,6 +1013,10 @@ async def run() -> None:
             # TaskGroup wraps exceptions in ExceptionGroup.
             for exc in eg.exceptions:
                 logger.error("cycle_phase_error", cycle=cycle_count, error=str(exc))
+        finally:
+            keeper.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await keeper
 
         # -- Fast diagnostic (inline, < 1 second) --
         try:
