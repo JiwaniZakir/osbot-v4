@@ -222,7 +222,7 @@ async def _phase_iterate(
                 repo=pr.repo,
                 issue_number=pr.issue_number,
                 pr_number=pr.pr_number,
-                outcome="merged",
+                outcome=Outcome.MERGED,
                 failure_reason=None,
                 tokens_used=0,
             )
@@ -243,7 +243,7 @@ async def _phase_iterate(
                 repo=pr.repo,
                 issue_number=pr.issue_number,
                 pr_number=pr.pr_number,
-                outcome="rejected",
+                outcome=Outcome.REJECTED,
                 failure_reason="closed by maintainer",
                 tokens_used=0,
             )
