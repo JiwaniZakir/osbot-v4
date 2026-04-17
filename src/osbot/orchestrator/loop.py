@@ -958,10 +958,10 @@ async def run() -> None:
         # the Docker healthcheck's 1200s staleness threshold.
         _hb_state_dir = Path(settings.state_dir)
 
-        async def _heartbeat_keeper() -> None:
+        async def _heartbeat_keeper(state_dir: Path = _hb_state_dir, cycle: int = cycle_count) -> None:
             while True:
                 await asyncio.sleep(300)
-                write_heartbeat(_hb_state_dir, cycle_count)
+                write_heartbeat(state_dir, cycle)
 
         keeper = asyncio.create_task(_heartbeat_keeper(), name="heartbeat-keeper")
 
