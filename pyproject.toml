@@ -22,7 +22,7 @@ dev = [
     "pytest-cov>=5.0",
     "mypy>=1.8",
     "ruff>=0.3",
-    "python-semantic-release>=10.5",
+    "python-semantic-release>=10.5.3",
     "bandit[toml]>=1.7",
 ]
 docs = [
