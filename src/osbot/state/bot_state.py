@@ -8,15 +8,19 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from dataclasses import asdict
 from typing import TYPE_CHECKING
 
 from osbot.config import settings
+from osbot.log import get_logger
 from osbot.types import OpenPR, ScoredIssue
 
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
+
+logger = get_logger(__name__)
 
 
 class BotState:
@@ -32,14 +36,41 @@ class BotState:
     # -- persistence ---------------------------------------------------------
 
     async def load(self) -> None:
-        """Load state from disk.  Missing file is fine (fresh start)."""
+        """Load state from disk.  Missing file is fine (fresh start).
+
+        A corrupt ``state.json`` (truncated / non-JSON / wrong shape) must not
+        crash-loop the container. The corrupt file is renamed aside for
+        forensics so the next flush writes a fresh file rather than silently
+        overwriting whatever's there, and the in-memory state stays empty.
+        """
         if not self._path.exists():
             return
         async with self._lock:
-            data = json.loads(self._path.read_text())
-            self.issue_queue = [ScoredIssue(**i) for i in data.get("issue_queue", [])]
-            self.active_work = {k: ScoredIssue(**v) for k, v in data.get("active_work", {}).items()}
-            self.open_prs = [OpenPR(**p) for p in data.get("open_prs", [])]
+            try:
+                raw = self._path.read_text()
+                data = json.loads(raw)
+                self.issue_queue = [ScoredIssue(**i) for i in data.get("issue_queue", [])]
+                self.active_work = {k: ScoredIssue(**v) for k, v in data.get("active_work", {}).items()}
+                self.open_prs = [OpenPR(**p) for p in data.get("open_prs", [])]
+            except (json.JSONDecodeError, TypeError, ValueError, AttributeError) as exc:
+                quarantine = self._path.with_suffix(f".corrupt-{int(time.time())}")
+                try:
+                    self._path.rename(quarantine)
+                except OSError as rename_exc:
+                    logger.error(
+                        "state_quarantine_failed",
+                        path=str(self._path),
+                        error=str(rename_exc),
+                    )
+                logger.error(
+                    "state_load_corrupt",
+                    path=str(self._path),
+                    quarantine=str(quarantine),
+                    error=str(exc),
+                )
+                self.issue_queue = []
+                self.active_work = {}
+                self.open_prs = []
 
     async def _flush(self) -> None:
         """Write current state to disk.  Caller must hold ``_lock``."""

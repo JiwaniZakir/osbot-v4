@@ -10,7 +10,7 @@ import re
 
 from osbot.config import settings
 from osbot.log import get_logger
-from osbot.types import GitHubCLIProtocol, QualityGateResult
+from osbot.types import CLI_RC_NOT_FOUND, GitHubCLIProtocol, QualityGateResult
 
 logger = get_logger(__name__)
 
@@ -180,18 +180,35 @@ def _check_commit_message(msg: str) -> tuple[bool, str]:
 
 
 async def _run_lint(workspace: str, github: GitHubCLIProtocol) -> bool:
-    """Best-effort lint check.  Returns True if lint passes or no linter found."""
-    # Try ruff first, then flake8
+    # Only no-op when the binary is genuinely missing. Timeout / exception
+    # sentinels (CLI_RC_TIMEOUT / CLI_RC_EXC) indicate the linter *ran* but
+    # failed to produce a usable verdict, so we must fail closed rather than
+    # let broken code through the gate.
     for cmd in [["ruff", "check", "."], ["flake8", "."]]:
         result = await github.run_cmd(cmd, cwd=workspace)
-        if result.returncode != -1:  # -1 means binary not found
-            return result.success
-    return True  # No linter available
+        if result.returncode == CLI_RC_NOT_FOUND:
+            continue
+        if not result.success:
+            logger.info(
+                "lint_failed",
+                workspace=workspace,
+                cmd=cmd,
+                returncode=result.returncode,
+                stderr=result.stderr[:200],
+            )
+        return result.success
+    return True
 
 
 async def _run_tests(workspace: str, github: GitHubCLIProtocol) -> bool:
-    """Best-effort test run.  Returns True if tests pass or no test runner found."""
     result = await github.run_cmd(["pytest", "--tb=short", "-q"], cwd=workspace, timeout=120.0)
-    if result.returncode == -1:  # binary not found
+    if result.returncode == CLI_RC_NOT_FOUND:
         return True
+    if not result.success:
+        logger.info(
+            "tests_failed",
+            workspace=workspace,
+            returncode=result.returncode,
+            stderr=result.stderr[:200],
+        )
     return result.success

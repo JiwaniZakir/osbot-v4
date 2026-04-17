@@ -7,15 +7,34 @@ self-diagnostic action.  Both are append-only for auditability.
 from __future__ import annotations
 
 import json
+import os
 from collections import deque
 from dataclasses import asdict
 from typing import TYPE_CHECKING
 
 from osbot.config import settings
+from osbot.log import get_logger
 from osbot.types import Correction, Trace
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+logger = get_logger(__name__)
+
+
+def _append_line_atomic(path: Path, line: str) -> None:
+    # Single ``os.write`` on an ``O_APPEND`` fd is POSIX-atomic up to
+    # ``PIPE_BUF`` (>= 4096 on Linux / macOS). Trace + correction records
+    # are a few hundred bytes, so a crash mid-write cannot leave a partial
+    # record in the file. ``os.fsync`` flushes to disk to defend against a
+    # host-level crash too.
+    data = line.encode("utf-8")
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    try:
+        os.write(fd, data)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 class TraceWriter:
@@ -38,14 +57,15 @@ class TraceWriter:
         """Append a trace record to traces.jsonl."""
         self._ensure_parent(self._traces_path)
         line = json.dumps(asdict(trace), separators=(",", ":")) + "\n"
-        with self._traces_path.open("a") as f:
-            f.write(line)
+        _append_line_atomic(self._traces_path, line)
 
     async def read_recent_traces(self, n: int) -> list[Trace]:
         """Read the last *n* traces from traces.jsonl.
 
         Uses a bounded deque to avoid loading the entire file into memory
-        for large histories.
+        for large histories. Malformed lines (from legacy non-atomic writes
+        or unrelated corruption) are skipped with a warning rather than
+        blowing up self-diagnostics.
         """
         if not self._traces_path.exists():
             return []
@@ -55,7 +75,16 @@ class TraceWriter:
                 stripped = line.strip()
                 if stripped:
                     recent.append(stripped)
-        return [Trace(**json.loads(raw)) for raw in recent]
+        traces: list[Trace] = []
+        skipped = 0
+        for raw in recent:
+            try:
+                traces.append(Trace(**json.loads(raw)))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                skipped += 1
+        if skipped:
+            logger.warning("traces_malformed_skipped", count=skipped, path=str(self._traces_path))
+        return traces
 
     # -- corrections ---------------------------------------------------------
 
@@ -63,8 +92,7 @@ class TraceWriter:
         """Append a correction record to corrections.jsonl."""
         self._ensure_parent(self._corrections_path)
         line = json.dumps(asdict(correction), separators=(",", ":")) + "\n"
-        with self._corrections_path.open("a") as f:
-            f.write(line)
+        _append_line_atomic(self._corrections_path, line)
 
     async def read_recent_corrections(self, n: int) -> list[Correction]:
         """Read the last *n* corrections from corrections.jsonl."""
@@ -76,4 +104,13 @@ class TraceWriter:
                 stripped = line.strip()
                 if stripped:
                     recent.append(stripped)
-        return [Correction(**json.loads(raw)) for raw in recent]
+        corrections: list[Correction] = []
+        skipped = 0
+        for raw in recent:
+            try:
+                corrections.append(Correction(**json.loads(raw)))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                skipped += 1
+        if skipped:
+            logger.warning("corrections_malformed_skipped", count=skipped, path=str(self._corrections_path))
+        return corrections
