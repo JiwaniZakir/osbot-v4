@@ -18,7 +18,7 @@ import shutil
 from typing import Any
 
 from osbot.log import get_logger
-from osbot.types import CLIResult
+from osbot.types import CLI_RC_EMPTY_CMD, CLI_RC_EXC, CLI_RC_NOT_FOUND, CLI_RC_TIMEOUT, CLIResult
 
 logger = get_logger(__name__)
 
@@ -90,15 +90,15 @@ async def _run_cli(
             proc.kill()  # type: ignore[possibly-undefined]
         except (ProcessLookupError, OSError):
             pass
-        return CLIResult(returncode=-1, stdout="", stderr="timeout")
+        return CLIResult(returncode=CLI_RC_TIMEOUT, stdout="", stderr="timeout")
 
     except FileNotFoundError:
         logger.error(f"{label}_not_found", binary=binary)
-        return CLIResult(returncode=-1, stdout="", stderr=f"binary not found: {binary}")
+        return CLIResult(returncode=CLI_RC_NOT_FOUND, stdout="", stderr=f"binary not found: {binary}")
 
     except Exception as exc:
         logger.error(f"{label}_unexpected", cmd=cmd, error=str(exc))
-        return CLIResult(returncode=-1, stdout="", stderr=str(exc))
+        return CLIResult(returncode=CLI_RC_EXC, stdout="", stderr=str(exc))
 
 
 class GitHubCLI:
@@ -147,7 +147,7 @@ class GitHubCLI:
         incorrectly run ``git ruff ...`` instead of ``ruff ...``.
         """
         if not cmd:
-            return CLIResult(returncode=-1, stdout="", stderr="empty command")
+            return CLIResult(returncode=CLI_RC_EMPTY_CMD, stdout="", stderr="empty command")
         binary = shutil.which(cmd[0]) or cmd[0]
         return await _run_cli(binary, cmd[1:], cwd=cwd, timeout=timeout, label="cmd")
 

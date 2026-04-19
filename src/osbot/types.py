@@ -150,6 +150,16 @@ class AgentResult:
     model: str = ""
 
 
+# Distinct negative sentinels for CLI failure modes that did not produce a
+# real process exit code. Kept far from real POSIX exit codes (0-255) so a
+# check like ``returncode == CLI_RC_NOT_FOUND`` cannot collide with a genuine
+# linter/test runner failure.
+CLI_RC_NOT_FOUND: int = -1
+CLI_RC_TIMEOUT: int = -2
+CLI_RC_EXC: int = -3
+CLI_RC_EMPTY_CMD: int = -4
+
+
 @dataclass(frozen=True, slots=True)
 class CLIResult:
     """Result from a gh/git CLI invocation."""
